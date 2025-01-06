@@ -7,6 +7,7 @@ import pathspec
 from pybars import Compiler
 import pandas as pd
 import math
+import html  # Добавьте этот импорт в начало файла
 
 # Настройка ширины экрана
 st.set_page_config(layout="wide")
@@ -75,7 +76,7 @@ def should_exclude(path, spec):
 # Get filtered files
 def get_filtered_files(path, extensions=None, exclude_folders=None, exclude_files=None):
     if extensions is None:
-        extensions = ["css", "tsx", "ts", "js", "mjs", "py", "ipynb", "html"]
+        extensions = ["css", "tsx", "ts", "js", "mjs", "py", "ipynb", "html", "log"]
     if exclude_folders is None:
         exclude_folders = ["venv", "env", "json_data", ".venv", ".venv312", ".venv_312", "__pycache__", ".next", "node_modules", "temp", "book", "mybooks", "cache", "mlruns", "data", ".data"]
     if exclude_files is None:
@@ -153,6 +154,7 @@ def generate_markdown(project_path, template_name, reference_url=None):
     }
     
     markdown_content = template(context)
+    markdown_content = html.unescape(markdown_content)
     save_to_db(project_path, template_name, markdown_content, reference_url)
     return markdown_content
 
