@@ -1,110 +1,119 @@
+# filepath: README.md
 # Code2MARKDOWN
 
-Code2MARKDOWN is a Streamlit-based web application that generates structured Markdown documentation from your project's source code. It provides an easy way to create comprehensive project overviews, README files, or documentation for code repositories.
+![Python](https://img.shields.io/badge/python-v3.12+-blue.svg)
+![Streamlit](https://img.shields.io/badge/streamlit-latest-red.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## Features
+Code2MARKDOWN is a powerful Streamlit-based web application that generates structured Markdown documentation from your project's source code. Perfect for creating comprehensive project overviews, README files, or technical documentation.
 
-- Analyzes project structure and generates a tree view
-- Reads and includes content from source code files
-- Supports multiple template options for different documentation needs
-- Excludes files and folders based on common patterns and .gitignore rules
-- Provides a user-friendly web interface for easy interaction
-- Allows copying generated Markdown to clipboard
+## 🚀 Quick Start
 
-## Installation
+### Option 1: Automated Setup (Windows)
+```batch
+# Run the setup script to create virtual environment and install dependencies
+setup.bat
 
-1. Clone the repository:
+# Launch the application
+start.bat
+```
 
-   git clone https://github.com/yourusername/Code2MARKDOWN.git
-   cd Code2MARKDOWN
+### Option 2: Manual Setup
+```bash
+# Clone the repository
+git clone https://github.com/yourusername/Code2MARKDOWN.git
+cd Code2MARKDOWN
 
-2. Create a virtual environment (optional but recommended):
+# Create virtual environment (recommended)
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+# source .venv/bin/activate  # Linux/Mac
 
-   python -m venv venv
-   source venv/bin/activate  # On Windows, use venv\Scripts\activate
+# Install dependencies
+pip install -r requirements.txt
 
-3. Install the required dependencies:
+# Run the application
+streamlit run app.py
+```
 
-   pip install -r requirements.txt
+## 📁 Project Structure
 
-## Usage
+```
+Code2MARKDOWN/
+├── app.py                 # Main Streamlit application
+├── main.py               # Entry point module
+├── templates/            # Handlebars templates
+│   ├── default_template.hbs
+│   ├── document-the-code.hbs
+│   └── ...
+├── requirements.txt      # Python dependencies
+└── README.md            # This file
+```
 
-1. Start the Streamlit app:
+## 🎯 Features
 
-   streamlit run app.py
+- **Multi-template Support**: 15+ specialized templates for different use cases
+- **Smart File Filtering**: Respects `.gitignore` and common exclusion patterns
+- **Request History**: SQLite-based storage with pagination
+- **Clipboard Integration**: One-click copying of generated content
+- **Project Structure Analysis**: Automatic tree generation
 
-2. Open your web browser and navigate to the URL provided by Streamlit (usually `http://localhost:8501`).
+## 📋 Available Templates
 
-3. Enter the path to your project folder in the text input field.
+| Template | Purpose |
+|----------|---------|
+| `default_template.hbs` | Basic project documentation |
+| `document-the-code.hbs` | Add comprehensive code documentation |
+| `write-github-readme.hbs` | Generate GitHub README files |
+| `find-security-vulnerabilities.hbs` | Security analysis |
+| `clean-up-code.hbs` | Code cleanup suggestions |
 
-4. Select a template from the dropdown menu.
+[View all templates](templates/)
 
-5. Click the "Generate Markdown" button to create the documentation.
+## 🔧 Configuration
 
-6. Use the "Copy to Clipboard" button to copy the generated Markdown content.
+Customize file processing in [`app.py`](app.py):
 
-7. Click "Refresh" to clear the current output and start over.
+```python
+extensions = ["css", "tsx", "ts", "js", "py", "html", "toml"]
+exclude_folders = ["venv", "node_modules", "__pycache__"]
+exclude_files = ["package-lock.json", ".gitignore"]
+```
 
-## Configuration
+## 🔧 Troubleshooting
 
-The application uses several default configurations that can be modified in the `app.py` file:
+### Common Issues
 
-- `extensions`: List of file extensions to include in the documentation
-- `exclude_folders`: List of folder names to exclude from the documentation
-- `exclude_files`: List of file names to exclude from the documentation
+#### `ModuleNotFoundError: No module named 'pybars'`
+This error occurs when the `pybars3` package is not installed. To fix:
 
-You can customize these lists to better suit your project's needs.
+```bash
+# Install the missing dependency
+pip install pybars3
 
-## Templates
+# Or reinstall all dependencies
+pip install -r requirements.txt
+```
 
-Code2MARKDOWN comes with several pre-defined templates for different documentation purposes:
+#### Virtual Environment Issues
+If you encounter path-related issues:
 
-- Default template
-- Binary exploitation CTF solver
-- Claude XML
-- Code cleanup
-- Cryptography CTF solver
-- Code documentation
-- Security vulnerability finder
-- Bug fixing
-- Performance improvement
-- Code refactoring
-- Reverse engineering CTF solver
-- Web CTF solver
-- Git commit message writer
-- GitHub pull request writer
-- GitHub README writer
+1. Make sure you're running from the project root directory
+2. Activate the virtual environment: `.venv\Scripts\activate` (Windows) or `source .venv/bin/activate` (Linux/Mac)
+3. Reinstall dependencies: `pip install -r requirements.txt`
 
-You can add new templates or modify existing ones in the `templates/` directory.
+#### Port Already in Use
+If Streamlit can't start due to port conflicts:
 
-## Contributing
+```bash
+# Kill existing Streamlit processes
+taskkill /f /im streamlit.exe  # Windows
+# pkill -f streamlit  # Linux/Mac
 
-Contributions to Code2MARKDOWN are welcome! Please follow these steps to contribute:
+# Or use a different port
+streamlit run app.py --server.port 8502
+```
 
-1. Fork the repository
-2. Create a new branch for your feature or bug fix
-3. Make your changes and commit them with descriptive commit messages
-4. Push your changes to your fork
-5. Submit a pull request to the main repository
+## 📝 License
 
-Please ensure that your code follows the existing style and includes appropriate tests.
-
-## Testing
-
-To run the tests for Code2MARKDOWN, use the following command:
-
-python -m unittest discover tests
-
-(Note: Actual test files are not present in the provided codebase. You may want to add tests in the future.)
-
-## License
-
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
-
-## Acknowledgements
-
-- [Streamlit](https://streamlit.io/) for the web application framework
-- [pyperclip](https://pypi.org/project/pyperclip/) for clipboard functionality
-- [pathspec](https://pypi.org/project/pathspec/) for .gitignore parsing
-- [pybars3](https://pypi.org/project/pybars3/) for Handlebars template rendering
-
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
