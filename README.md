@@ -88,31 +88,68 @@ exclude_files = ["package-lock.json", ".gitignore"]
 This error occurs when the `pybars3` package is not installed. To fix:
 
 ```bash
-# Install the missing dependency
+# Quick fix - install the missing dependency
 pip install pybars3
 
 # Or reinstall all dependencies
 pip install -r requirements.txt
+
+# Or run the automated setup
+setup.bat
 ```
 
 #### Virtual Environment Issues
 If you encounter path-related issues:
 
-1. Make sure you're running from the project root directory
-2. Activate the virtual environment: `.venv\Scripts\activate` (Windows) or `source .venv/bin/activate` (Linux/Mac)
-3. Reinstall dependencies: `pip install -r requirements.txt`
+1. **Run setup.bat first**: `setup.bat` will create and configure the virtual environment
+2. **Make sure you're in the project directory**: The scripts should be run from `Code2MARKDOWN/` folder
+3. **Check virtual environment**: Ensure `.venv` folder exists and contains `Scripts/activate.bat`
+4. **Manual activation**: Run `.venv\Scripts\activate.bat` then `pip install -r requirements.txt`
 
 #### Port Already in Use
 If Streamlit can't start due to port conflicts:
 
 ```bash
-# Kill existing Streamlit processes
-taskkill /f /im streamlit.exe  # Windows
-# pkill -f streamlit  # Linux/Mac
+# Kill existing Streamlit processes (Windows)
+taskkill /f /im python.exe /fi "commandline eq *streamlit*"
 
 # Or use a different port
 streamlit run app.py --server.port 8502
 ```
+
+#### Dependencies Installation Failed
+If pip install fails:
+
+```bash
+# Update pip first
+python -m pip install --upgrade pip
+
+# Install core dependencies only
+pip install streamlit pybars3 pathspec pyperclip pandas
+
+# Clear pip cache if needed
+pip cache purge
+```
+
+### Quick Setup Guide
+
+1. **Clone and setup**:
+   ```bash
+   git clone <repository-url>
+   cd Code2MARKDOWN
+   setup.bat  # This handles everything automatically
+   ```
+
+2. **Launch application**:
+   ```bash
+   start.bat  # Launches with dependency checking
+   ```
+
+3. **Manual launch** (if needed):
+   ```bash
+   .venv\Scripts\activate.bat
+   streamlit run app.py
+   ```
 
 ## 📝 License
 
