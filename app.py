@@ -76,7 +76,7 @@ def should_exclude(path, spec):
 # Get filtered files
 def get_filtered_files(path, extensions=None, exclude_folders=None, exclude_files=None):
     if extensions is None:
-        extensions = ["css", "tsx", "ts", "js", "mjs", "py", "ipynb", "html", "log"]
+        extensions = ["css", "tsx", "ts", "js", "mjs", "py", "ipynb", "html", "toml",]
     if exclude_folders is None:
         exclude_folders = ["venv", "env", "json_data", ".venv", ".venv312", ".venv_312", "__pycache__", ".next", "node_modules", "temp", "book", "mybooks", "cache", "mlruns", "data", ".data"]
     if exclude_files is None:
