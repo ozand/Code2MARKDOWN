@@ -1,8 +1,9 @@
 # filepath: README.md
-# Code2MARKDOWN
+# Code2MARKDOWN v1.1.0
 
 ![Python](https://img.shields.io/badge/python-v3.12+-blue.svg)
 ![Streamlit](https://img.shields.io/badge/streamlit-latest-red.svg)
+![Version](https://img.shields.io/badge/version-v1.1.0-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 Code2MARKDOWN is a powerful Streamlit-based web application that generates structured Markdown documentation from your project's source code. Perfect for creating comprehensive project overviews, README files, or technical documentation.
