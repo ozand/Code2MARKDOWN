@@ -8,6 +8,9 @@ from pybars import Compiler
 import pandas as pd
 import math
 import html  # Добавьте этот импорт в начало файла
+import json
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
 
 # Настройка ширины экрана
 st.set_page_config(layout="wide")
@@ -158,6 +161,40 @@ def generate_markdown(project_path, template_name, reference_url=None):
     save_to_db(project_path, template_name, markdown_content, reference_url)
     return markdown_content
 
+# Функции для конвертации контента в различные форматы
+def convert_to_xml(markdown_content, project_name):
+    """Конвертирует markdown контент в XML формат"""
+    root = ET.Element("project")
+    
+    # Добавляем метаданные
+    metadata = ET.SubElement(root, "metadata")
+    ET.SubElement(metadata, "name").text = project_name
+    ET.SubElement(metadata, "generated_at").text = datetime.now().isoformat()
+    ET.SubElement(metadata, "generator").text = "Code2MARKDOWN"
+    
+    # Добавляем контент
+    content = ET.SubElement(root, "content")
+    content.text = markdown_content
+    
+    # Красивое форматирование XML
+    rough_string = ET.tostring(root, 'utf-8')
+    reparsed = minidom.parseString(rough_string)
+    return reparsed.toprettyxml(indent="  ")
+
+def prepare_file_content(content, file_format, project_path):
+    """Подготавливает контент для скачивания в указанном формате"""
+    project_name = os.path.basename(os.path.abspath(project_path)) if project_path else "project"
+    
+    if file_format == "txt":
+        return content, f"{project_name}_documentation.txt", "text/plain"
+    elif file_format == "md":
+        return content, f"{project_name}_documentation.md", "text/markdown"
+    elif file_format == "xml":
+        xml_content = convert_to_xml(content, project_name)
+        return xml_content, f"{project_name}_documentation.xml", "application/xml"
+    else:
+        return content, f"{project_name}_documentation.txt", "text/plain"
+
 # Функция для отображения истории с пагинацией и улучшенным UI
 def display_history_with_pagination(history, page_size=10):
     total_records = len(history)
@@ -167,10 +204,8 @@ def display_history_with_pagination(history, page_size=10):
     page_number = st.number_input("Страница", min_value=1, max_value=total_pages, value=1, step=1)
     start_index = (page_number - 1) * page_size
     end_index = start_index + page_size
-    paginated_history = history[start_index:end_index]
-
-    # Отображение заголовков
-    col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 2])  # Уменьшено количество колонок
+    paginated_history = history[start_index:end_index]    # Отображение заголовков
+    col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 3])  # Увеличена последняя колонка для кнопок
     with col1:
         st.markdown("**ID**", help="Уникальный идентификатор записи")
     with col2:
@@ -180,12 +215,10 @@ def display_history_with_pagination(history, page_size=10):
     with col4:
         st.markdown("**Processed At**", help="Время обработки")
     with col5:
-        st.markdown("**Actions**", help="Действия с записью")
-
-    # Отображение данных
+        st.markdown("**Actions**", help="Копировать | Скачать | Удалить")    # Отображение данных
     for record in paginated_history:
         with st.container():
-            col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 2])  # Уменьшено количество колонок
+            col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 3])  # Увеличена последняя колонка
             with col1:
                 st.markdown(f"{record[0]}")  # ID
             with col2:
@@ -206,18 +239,42 @@ def display_history_with_pagination(history, page_size=10):
             with col3:
                 st.markdown(f"{record[2]}")  # Template
             with col4:
-                st.markdown(f"{record[5]}")  # Processed At
-            with col5:
+                st.markdown(f"{record[5]}")  # Processed At            with col5:
                 # Используем st.columns для размещения кнопок в одной строке
-                button_col1, button_col2 = st.columns([1, 1])
+                button_col1, button_col2, button_col3 = st.columns([1, 1, 1])
                 with button_col1:
                     if st.button("📋", key=f"copy_{record[0]}", help="Копировать markdown"):
                         pyperclip.copy(record[3])
-                        st.toast("Markdown скопирован в буфер обмена!", icon="✅")  # Временное сообщение
+                        st.toast("Markdown скопирован в буфер обмена!", icon="✅")
+                        
                 with button_col2:
+                    # Кнопка скачивания с выпадающим меню форматов
+                    download_format = st.selectbox(
+                        "Format",
+                        options=["txt", "md", "xml"],
+                        key=f"format_{record[0]}",
+                        label_visibility="collapsed",
+                        help="Выберите формат для скачивания"
+                    )
+                    
+                    # Подготавливаем контент для скачивания
+                    file_content, filename, mime_type = prepare_file_content(
+                        record[3], download_format, record[1]
+                    )
+                    
+                    st.download_button(
+                        label="💾",
+                        data=file_content,
+                        file_name=filename,
+                        mime=mime_type,
+                        key=f"download_{record[0]}",
+                        help=f"Скачать как {download_format.upper()}"
+                    )
+                    
+                with button_col3:
                     if st.button("🗑️", key=f"delete_{record[0]}", help="Удалить запись"):
                         delete_record(record[0])
-                        st.toast("Запись удалена!", icon="🗑️")  # Временное сообщение
+                        st.toast("Запись удалена!", icon="🗑️")
                         # Trigger rerun by updating session state
                         st.session_state.rerun = True
             
@@ -310,10 +367,10 @@ if page == "Генерация Markdown":
         )
 
     selected_template = st.selectbox("Select a template:", templates, index=templates.index(st.session_state.selected_template))
-    reference_url = st.text_input("Enter the reference URL (optional):", placeholder="e.g., https://example.com")
-
-    # Action buttons
+    reference_url = st.text_input("Enter the reference URL (optional):", placeholder="e.g., https://example.com")    # Action buttons
     st.subheader("🚀 Actions")
+    
+    # Основные действия
     col1, col2, col3 = st.columns(3)
     with col1:
         if st.button("Generate Markdown", help="Generate Markdown content based on the selected template"):
@@ -325,16 +382,60 @@ if page == "Генерация Markdown":
             else:
                 st.error("Please provide a valid project directory path.")
     with col2:
-        if st.button("Copy to Clipboard", help="Copy the generated Markdown to your clipboard"):
+        if st.button("📋 Copy to Clipboard", help="Copy the generated Markdown to your clipboard"):
             if st.session_state.markdown_content:
                 pyperclip.copy(st.session_state.markdown_content)
                 st.toast("Markdown content copied to clipboard!", icon="✅")
             else:
                 st.error("No Markdown content to copy. Please generate Markdown first.")
     with col3:
-        if st.button("Refresh", help="Clear the generated Markdown content"):
+        if st.button("🔄 Refresh", help="Clear the generated Markdown content"):
             st.session_state.markdown_content = ""
             st.toast("Markdown content cleared!", icon="✅")
+    
+    # Кнопки скачивания
+    if st.session_state.markdown_content:
+        st.subheader("💾 Download Options")
+        download_col1, download_col2, download_col3 = st.columns(3)
+        
+        with download_col1:
+            # Скачивание в формате TXT
+            txt_content, txt_filename, txt_mime = prepare_file_content(
+                st.session_state.markdown_content, "txt", st.session_state.project_path
+            )
+            st.download_button(
+                label="📄 Download as TXT",
+                data=txt_content,
+                file_name=txt_filename,
+                mime=txt_mime,
+                help="Download as plain text file"
+            )
+        
+        with download_col2:
+            # Скачивание в формате MD
+            md_content, md_filename, md_mime = prepare_file_content(
+                st.session_state.markdown_content, "md", st.session_state.project_path
+            )
+            st.download_button(
+                label="📝 Download as MD",
+                data=md_content,
+                file_name=md_filename,
+                mime=md_mime,
+                help="Download as Markdown file"
+            )
+        
+        with download_col3:
+            # Скачивание в формате XML
+            xml_content, xml_filename, xml_mime = prepare_file_content(
+                st.session_state.markdown_content, "xml", st.session_state.project_path
+            )
+            st.download_button(
+                label="🗂️ Download as XML",
+                data=xml_content,
+                file_name=xml_filename,
+                mime=xml_mime,
+                help="Download as XML file"
+            )
 
     # Display generated Markdown
     if st.session_state.markdown_content:

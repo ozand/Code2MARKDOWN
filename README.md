@@ -56,7 +56,9 @@ Code2MARKDOWN/
 - **Smart File Filtering**: Respects `.gitignore` and common exclusion patterns
 - **Request History**: SQLite-based storage with pagination
 - **Clipboard Integration**: One-click copying of generated content
+- **Multi-format Download**: Download results as TXT, MD, or XML files
 - **Project Structure Analysis**: Automatic tree generation
+- **Enhanced History Management**: Copy, download, or delete previous results
 
 ## 📋 Available Templates
 
@@ -78,6 +80,42 @@ Customize file processing in [`app.py`](app.py):
 extensions = ["css", "tsx", "ts", "js", "py", "html", "toml"]
 exclude_folders = ["venv", "node_modules", "__pycache__"]
 exclude_files = ["package-lock.json", ".gitignore"]
+```
+
+## 💾 Download & Export Options
+
+The application now supports multiple download formats:
+
+### Available Formats
+
+| Format | Description | Use Case |
+|--------|-------------|----------|
+| **TXT** | Plain text format | Simple documentation, notes |
+| **MD** | Markdown format | GitHub, documentation sites |
+| **XML** | Structured XML format | Data exchange, archival |
+
+### Download Locations
+
+1. **Main Interface**: After generating Markdown, use the download buttons below the action buttons
+2. **History Page**: Each historical record has a format selector and download button
+3. **Bulk Operations**: Select format and download individual entries from history
+
+### XML Structure
+
+The XML export includes metadata and structured content:
+
+```xml
+<?xml version="1.0" ?>
+<project>
+  <metadata>
+    <name>YourProject</name>
+    <generated_at>2024-01-01T12:00:00</generated_at>
+    <generator>Code2MARKDOWN</generator>
+  </metadata>
+  <content>
+    [Your generated markdown content]
+  </content>
+</project>
 ```
 
 ## 🔧 Troubleshooting
