@@ -5,6 +5,24 @@ All notable changes to Code2MARKDOWN will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2025-06-10
+
+### Removed
+- **Redundant dependency files**: Cleaned up requirements_minimal.txt and requirements_new.txt
+- **System-wide dependencies**: Removed 362 unnecessary packages from requirements_new.txt
+
+### Changed
+- **Streamlined dependencies**: Kept only 5 core packages in requirements.txt
+- **Virtual environment**: Rebuilt for clean state
+- **Setup process**: Verified all dependencies are actually used in code
+
+### Dependencies verified
+- `streamlit>=1.38.0` - Main UI framework
+- `pybars3>=0.9.7` - Handlebars template engine
+- `pathspec>=0.12.1` - File filtering and exclusion
+- `pyperclip>=1.9.0` - Clipboard operations
+- `pandas>=2.2.3` - Data handling and processing
+
 ## [1.1.0] - 2025-06-10
 
 ### Added
