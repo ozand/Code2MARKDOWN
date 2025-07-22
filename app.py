@@ -627,10 +627,10 @@ def display_history_with_pagination(history, page_size=10):
             # Информация о фильтрах
             st.markdown(f"**⚙️ Filters Applied:** {data['Filters']}")
             
-            # Полный путь (expandable)
+            # Полный путь (без вложенного expander)
             if data['Path'] != "N/A":
-                with st.expander("📂 Full Path", expanded=False):
-                    st.code(data['Path'])
+                st.markdown("**📂 Full Path:**")
+                st.code(data['Path'], language=None)
             
             # Действия
             st.markdown("**🚀 Actions:**")
