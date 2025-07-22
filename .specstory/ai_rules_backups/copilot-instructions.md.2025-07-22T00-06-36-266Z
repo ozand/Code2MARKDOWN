@@ -1,0 +1,119 @@
+
+## HEADERS
+
+This file defines the rules, coding standards, workflow guidelines, references, documentation structure, and best practices for the AI coding assistant within this project. It is a living document that evolves with the project.
+
+## TECH STACK
+
+*   Python 3.12+
+*   Streamlit (for the user interface)
+*   Handlebars templating (pybars3)
+*   pathspec (for .gitignore parsing)
+*   SQLite (for request history)
+*   pandas
+
+## PROJECT DOCUMENTATION & CONTEXT SYSTEM
+
+*   README.md: Project overview, setup instructions, features, and contribution guidelines.
+*   Templates directory: Contains Handlebars templates for different documentation generation tasks.
+*   CHANGELOG.md: Records significant changes and version updates.
+*   CLEANUP_REPORT.md: Documents dependency cleanup efforts (if applicable).
+
+## CODING STANDARDS
+
+*   Follow PEP 8 guidelines for Python code.
+*   Use descriptive variable and function names.
+*   Write clear and concise comments.
+*   Ensure code is modular and reusable.
+*   Handle errors gracefully with try-except blocks.
+*   Validate user inputs to prevent security vulnerabilities.
+
+## FILE FILTERING RULES
+
+*   Respect `.gitignore` files to exclude specified files and directories.
+*   Exclude common virtual environment folders (e.g., `venv`, `node_modules`).
+*   Exclude package lock files (e.g., `package-lock.json`).
+*   Define file extensions to be processed (e.g., `.py`, `.js`, `.md`).
+
+## TEMPLATE RULES
+
+*   Use Handlebars templates for generating documentation.
+*   Provide a variety of templates for different use cases (e.g., README generation, code documentation, security analysis).
+*   Ensure templates are well-structured and easy to maintain.
+
+## DATABASE RULES
+
+*   Use SQLite for storing request history.
+*   Implement pagination for efficient display of history.
+*   Sanitize database inputs to prevent SQL injection attacks.
+
+## WORKFLOW & RELEASE RULES
+
+*   Use Git for version control.
+*   Create feature branches for new development.
+*   Use pull requests for code review.
+*   Implement a CI/CD pipeline with GitHub Actions.
+*   Tag releases with semantic versioning (e.g., v1.0.0).
+
+## DEBUGGING
+
+*   Use structured logging for debugging.
+*   Implement checks for missing dependencies.
+*   Test application startup to identify import errors.
+
+## GIT RULES
+
+*   Commit messages should be descriptive and follow conventional format.
+*   Use `.gitignore` to exclude unnecessary files.
+*   Create tags for releases.
+*   Push changes to the remote repository regularly.
+
+## ERROR HANDLING
+
+*   Handle `ModuleNotFoundError` for missing dependencies.
+*   Display user-friendly error messages in the Streamlit app.
+*   Log errors for debugging purposes.
+
+## USER INTERFACE (UI) RULES
+
+*   Provide a clear and intuitive user interface.
+*   Use Streamlit components for interactive elements.
+*   Display loading indicators during long-running tasks.
+*   Provide one-click copy functionality for generated content.
+*   Offer download options in various formats (txt, md, xml).
+*   Use tooltips and clear labels for UI elements.
+
+## SECURITY RULES
+
+*   Validate file paths to prevent unauthorized access.
+*   Sanitize user inputs to prevent injection attacks.
+
+## DEPENDENCIES
+
+*   Use `requirements.txt` to manage project dependencies.
+*   Keep dependencies up-to-date.
+*   Only include necessary packages to minimize project size.
+
+## FILE DOWNLOAD FUNCTIONALITY
+
+*   Implement download options in TXT, MD, and XML formats.
+*   Provide download buttons on the main page and in the history section.
+*   Use appropriate MIME types for each file format.
+*   Automatically name files for download (e.g., `{project_name}_documentation.{ext}`).
+
+## XML CONVERSION
+
+*   Create an XML structure with metadata (project name, generation date, generator).
+*   Include the generated Markdown content within the XML structure.
+
+## TESTING
+
+*   Create unit tests for core functionality.
+*   Test file filtering, project structure generation, and other critical features.
+*   Ensure tests pass before merging code.
+
+## CI/CD
+
+*   Use GitHub Actions for continuous integration.
+*   Automate testing and linting.
+*   Deploy changes automatically to a staging or production environment.

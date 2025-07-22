@@ -1,12 +1,23 @@
 # filepath: README.md
-# Code2MARKDOWN v1.1.0
+# Code2MARKDOWN v1.2.0
 
 ![Python](https://img.shields.io/badge/python-v3.12+-blue.svg)
 ![Streamlit](https://img.shields.io/badge/streamlit-latest-red.svg)
-![Version](https://img.shields.io/badge/version-v1.1.0-green.svg)
+![Version](https://img.shields.io/badge/version-v1.2.0-green.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-Code2MARKDOWN is a powerful Streamlit-based web application that generates structured Markdown documentation from your project's source code. Perfect for creating comprehensive project overviews, README files, or technical documentation.
+Code2MARKDOWN is a powerful Streamlit-based web application that generates structured Markdown documentation from your project's source code. Now with **interactive file selection** and **advanced filtering options** for precise control over documentation generation.
+
+## ✨ Key Features
+
+- 🎯 **Interactive File Selection** - Visual file tree with checkboxes
+- ⚙️ **Advanced Filtering** - Custom include/exclude patterns and size limits  
+- 📁 **Project Structure Preview** - 3-level deep file tree visualization
+- 🚀 **Smart Selection Tools** - Quick selection for all files or code files only
+- 📄 **Multiple Templates** - 15+ specialized templates for different use cases
+- 💾 **Multi-format Export** - Download as TXT, MD, or XML
+- 📊 **History Management** - Track and revisit previous generations
+- 🔄 **Real-time Processing** - Instant feedback and live file count
 
 ## 🚀 Quick Start
 
@@ -53,13 +64,41 @@ Code2MARKDOWN/
 
 ## 🎯 Features
 
+### Interactive File Selection (New in v1.2.0!)
+- **Visual File Tree** - Browse your project structure with up to 3 levels of nesting
+- **Checkbox Selection** - Choose exactly which files and folders to include
+- **Smart Filtering** - Custom include/exclude patterns and file size limits
+- **Quick Selection Tools**:
+  - 📂 **Select All** - Include all visible files  
+  - 📄 **Code Files Only** - Select programming files automatically
+  - 🗑️ **Clear Selection** - Deselect everything
+- **Real-time Feedback** - Live file count and instant filtering
+
+### Advanced Configuration
+- **Include Patterns** - Specify file extensions (.py, .js, .md) or patterns (*.json)
+- **Exclude Patterns** - Skip folders (node_modules, __pycache__) or files (*.log)
+- **File Size Limits** - Set maximum file size (1-1000 KB) to exclude large files
+- **GitIgnore Support** - Automatically respects .gitignore rules
+
+### Core Features  
 - **Multi-template Support**: 15+ specialized templates for different use cases
-- **Smart File Filtering**: Respects `.gitignore` and common exclusion patterns
 - **Request History**: SQLite-based storage with pagination
 - **Clipboard Integration**: One-click copying of generated content
 - **Multi-format Download**: Download results as TXT, MD, or XML files
 - **Project Structure Analysis**: Automatic tree generation
 - **Enhanced History Management**: Copy, download, or delete previous results
+
+## 🎨 User Interface
+
+The application now features a GitIngest-inspired interface with:
+
+1. **Project Details Section** - Path input and template selection
+2. **Filter Settings** - Expandable section for advanced filtering options
+3. **File Selection** - Interactive project tree with visual selection
+4. **Action Buttons** - Generate, copy, and refresh functionality  
+5. **Download Options** - Multiple format export capabilities
+
+See the [Interactive Selection Guide](INTERACTIVE_SELECTION_GUIDE.md) for detailed usage instructions.
 
 ## 📋 Available Templates
 

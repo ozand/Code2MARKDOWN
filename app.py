@@ -77,13 +77,15 @@ def should_exclude(path, spec):
     return spec.match_file(path)
 
 # Get filtered files
+# app.py
+
 def get_filtered_files(path, extensions=None, exclude_folders=None, exclude_files=None):
     if extensions is None:
         extensions = ["css", "tsx", "ts", "js", "mjs", "py", "ipynb", "html", "toml",]
     if exclude_folders is None:
-        exclude_folders = ["venv", "env", "json_data", ".venv", ".venv312", ".venv_312", "__pycache__", ".next", "node_modules", "temp", "book", "mybooks", "cache", "mlruns", "data", ".data"]
+        exclude_folders = ["venv", "env", "json_data", ".venv", ".venv312", ".venv_312", "__pycache__", ".next", "node_modules", "temp", "book", "mybooks", "cache", "mlruns", "data", ".data", "backup", "examples", "reports", "scripts", "tests", "model_cache", "models"]
     if exclude_files is None:
-        exclude_files = ["package-lock.json", "package.json", "manifest.json", "App.test.js", "reportWebVitals.js", "setupTests.js", ".gitignore"]
+        exclude_files = ["package-lock.json", "package.json", "manifest.json", "App.test.js", "reportWebVitals.js", "setupTests.js", ".gitignore", ".env"]
     
     exclude_folders.extend([d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d)) and d.startswith('.')])
     gitignore_path = os.path.join(path, '.gitignore')
@@ -97,12 +99,14 @@ def get_filtered_files(path, extensions=None, exclude_folders=None, exclude_file
                 yield file_path
 
 # Get project structure
+# app.py
+
 def get_project_structure(path, exclude_folders=None, exclude_files=None, indent_level=0):
     if exclude_folders is None:
-        exclude_folders = ["venv", "env", "json_data", ".venv", "__pycache__", ".next", "node_modules", "cache", "mlruns"]
+        exclude_folders = ["venv", "env", "json_data", ".venv", "__pycache__", ".next", "node_modules", "cache", "mlruns", "backup", "examples", "reports", "scripts", "tests", "model_cache", "models"]
     if exclude_files is None:
-        exclude_files = [".gitignore"]
-    
+        exclude_files = [".gitignore", ".env"]
+        
     exclude_folders.extend([d for d in os.listdir(path) if os.path.isdir(os.path.join(path, d)) and d.startswith('.')])
     gitignore_path = os.path.join(path, '.gitignore')
     spec = parse_gitignore(gitignore_path)
@@ -131,24 +135,43 @@ def load_template(template_name):
     return None
 
 # Generate Markdown
-def generate_markdown(project_path, template_name, reference_url=None):
+def generate_markdown(project_path, template_name, reference_url=None, selected_files=None, include_patterns=None, exclude_patterns=None, max_file_size=None):
     template = load_template(template_name)
     if not template:
         st.error(f"Template {template_name} not found.")
         return ""
     
-    project_structure = get_project_structure(project_path)
-    files = []
-    for file_path in get_filtered_files(project_path):
-        try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                file_content = file.read()
-            files.append({
-                "path": file_path,
-                "code": file_content
-            })
-        except Exception as e:
-            st.error(f"Error processing file: {file_path} - {str(e)}")
+    # Используем новую логику структуры проекта
+    if selected_files:
+        # Если есть выбранные файлы, строим структуру только для них
+        project_structure = build_structure_from_selected(project_path, selected_files)
+        files = []
+        for file_path in get_filtered_files_interactive(
+            project_path, selected_files, include_patterns, exclude_patterns, max_file_size
+        ):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    file_content = file.read()
+                files.append({
+                    "path": file_path,
+                    "code": file_content
+                })
+            except Exception as e:
+                st.error(f"Error processing file: {file_path} - {str(e)}")
+    else:
+        # Fallback к старой логике
+        project_structure = get_project_structure(project_path)
+        files = []
+        for file_path in get_filtered_files(project_path):
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    file_content = file.read()
+                files.append({
+                    "path": file_path,
+                    "code": file_content
+                })
+            except Exception as e:
+                st.error(f"Error processing file: {file_path} - {str(e)}")
     
     context = {
         "absolute_code_path": os.path.basename(os.path.abspath(project_path)),
@@ -160,6 +183,48 @@ def generate_markdown(project_path, template_name, reference_url=None):
     markdown_content = html.unescape(markdown_content)
     save_to_db(project_path, template_name, markdown_content, reference_url)
     return markdown_content
+
+def build_structure_from_selected(project_path, selected_files):
+    """Строит структуру проекта только для выбранных файлов"""
+    structure = f"Project: {os.path.basename(project_path)}\n"
+    
+    # Группируем файлы по папкам
+    folders = {}
+    for file_path in selected_files:
+        if os.path.isfile(file_path):
+            rel_path = os.path.relpath(file_path, project_path)
+            dir_parts = rel_path.split(os.sep)[:-1]
+            filename = os.path.basename(file_path)
+            
+            current_dict = folders
+            for part in dir_parts:
+                if part not in current_dict:
+                    current_dict[part] = {}
+                current_dict = current_dict[part]
+            
+            if '_files' not in current_dict:
+                current_dict['_files'] = []
+            current_dict['_files'].append(filename)
+    
+    def build_tree(folder_dict, indent=0):
+        result = ""
+        indent_str = "    " * indent
+        
+        # Сначала выводим папки
+        for name, content in folder_dict.items():
+            if name != '_files':
+                result += f"{indent_str}├── {name}/\n"
+                result += build_tree(content, indent + 1)
+        
+        # Затем выводим файлы
+        if '_files' in folder_dict:
+            for filename in sorted(folder_dict['_files']):
+                result += f"{indent_str}├── {filename}\n"
+        
+        return result
+    
+    structure += build_tree(folders)
+    return structure
 
 # Функции для конвертации контента в различные форматы
 def convert_to_xml(markdown_content, project_name):
@@ -194,6 +259,185 @@ def prepare_file_content(content, file_format, project_path):
         return xml_content, f"{project_name}_documentation.xml", "application/xml"
     else:
         return content, f"{project_name}_documentation.txt", "text/plain"
+
+# Новые функции для интерактивного выбора файлов
+def get_file_tree_structure(path, max_depth=3, current_depth=0, include_patterns=None, exclude_patterns=None, max_file_size=None):
+    """Получает структуру файлов для интерактивного отображения"""
+    if current_depth >= max_depth:
+        return {}
+    
+    if not os.path.exists(path):
+        return {}
+    
+    # Получаем gitignore spec
+    gitignore_path = os.path.join(path, '.gitignore')
+    spec = parse_gitignore(gitignore_path)
+    
+    structure = {}
+    try:
+        items = sorted(os.listdir(path))
+        for item in items:
+            item_path = os.path.join(path, item)
+            relative_path = os.path.relpath(item_path, path)
+            
+            # Проверяем gitignore
+            if should_exclude(item_path, spec):
+                continue
+                
+            if os.path.isdir(item_path):
+                # Исключаем системные папки
+                if item.startswith('.') or item in ["venv", "env", "__pycache__", "node_modules", "dist", "build"]:
+                    continue
+                    
+                # Проверяем exclude patterns
+                if exclude_patterns and any(item.lower() in pattern.lower() for pattern in exclude_patterns):
+                    continue
+                    
+                structure[item] = {
+                    'type': 'folder',
+                    'path': item_path,
+                    'children': get_file_tree_structure(
+                        item_path, max_depth, current_depth + 1, 
+                        include_patterns, exclude_patterns, max_file_size
+                    )
+                }
+            else:
+                # Проверяем размер файла
+                if max_file_size:
+                    try:
+                        file_size = os.path.getsize(item_path)
+                        if file_size > max_file_size * 1024:  # max_file_size в KB
+                            continue
+                    except:
+                        continue
+                
+                # Проверяем include patterns
+                if include_patterns:
+                    file_ext = os.path.splitext(item)[1].lower()
+                    if not any(pattern.lower() in item.lower() or file_ext == pattern.lower() for pattern in include_patterns):
+                        continue
+                
+                # Проверяем exclude patterns  
+                if exclude_patterns and any(pattern.lower() in item.lower() for pattern in exclude_patterns):
+                    continue
+                    
+                structure[item] = {
+                    'type': 'file',
+                    'path': item_path,
+                    'size': os.path.getsize(item_path) if os.path.exists(item_path) else 0
+                }
+    except PermissionError:
+        pass
+        
+    return structure
+
+def render_file_tree_ui(structure, prefix="", selected_files=None, key_prefix=""):
+    """Отображает интерактивное дерево файлов с чекбоксами"""
+    if selected_files is None:
+        selected_files = set()
+    
+    newly_selected = set()
+    
+    for name, info in structure.items():
+        current_key = f"{key_prefix}_{name}_{info['path']}"
+        indent = "　" * len(prefix.split("├── ")) if prefix else ""
+        
+        if info['type'] == 'folder':
+            # Folder checkbox
+            folder_selected = st.checkbox(
+                f"{indent}📁 {name}/",
+                value=info['path'] in selected_files,
+                key=f"folder_{current_key}"
+            )
+            
+            if folder_selected:
+                newly_selected.add(info['path'])
+                # Auto-select all children
+                for child_path in get_all_child_paths(info):
+                    newly_selected.add(child_path)
+            
+            # Render children
+            if info.get('children'):
+                child_selected = render_file_tree_ui(
+                    info['children'], 
+                    prefix + "├── ", 
+                    selected_files.union(newly_selected),
+                    key_prefix + f"_{name}"
+                )
+                newly_selected.update(child_selected)
+                
+        else:
+            # File checkbox
+            file_size_kb = info['size'] / 1024 if info['size'] > 0 else 0
+            size_str = f" ({file_size_kb:.1f} KB)" if file_size_kb > 0 else ""
+            
+            file_selected = st.checkbox(
+                f"{indent}📄 {name}{size_str}",
+                value=info['path'] in selected_files,
+                key=f"file_{current_key}"
+            )
+            
+            if file_selected:
+                newly_selected.add(info['path'])
+    
+    return newly_selected
+
+def get_all_child_paths(folder_info):
+    """Получает все пути файлов в папке рекурсивно"""
+    paths = []
+    
+    def collect_paths(structure):
+        for name, info in structure.items():
+            paths.append(info['path'])
+            if info['type'] == 'folder' and info.get('children'):
+                collect_paths(info['children'])
+    
+    if folder_info.get('children'):
+        collect_paths(folder_info['children'])
+    
+    return paths
+
+def get_filtered_files_interactive(path, selected_files=None, include_patterns=None, exclude_patterns=None, max_file_size=None):
+    """Получает отфильтрованный список файлов на основе пользовательского выбора"""
+    if selected_files is None:
+        # Fallback to original logic if no selection
+        return get_filtered_files(path)
+    
+    filtered_files = []
+    
+    for file_path in selected_files:
+        if os.path.isfile(file_path):
+            # Проверяем размер файла
+            if max_file_size:
+                try:
+                    file_size = os.path.getsize(file_path)
+                    if file_size > max_file_size * 1024:  # max_file_size в KB
+                        continue
+                except:
+                    continue
+            
+            # Проверяем include patterns
+            if include_patterns:
+                filename = os.path.basename(file_path)
+                file_ext = os.path.splitext(filename)[1].lower()
+                if not any(pattern.lower() in filename.lower() or file_ext == pattern.lower() for pattern in include_patterns):
+                    continue
+            
+            # Проверяем exclude patterns
+            if exclude_patterns:
+                filename = os.path.basename(file_path)
+                if any(pattern.lower() in filename.lower() for pattern in exclude_patterns):
+                    continue
+                    
+            filtered_files.append(file_path)
+        elif os.path.isdir(file_path):
+            # Если выбрана папка, получаем все файлы из неё
+            for root, dirs, files in os.walk(file_path):
+                for file in files:
+                    full_path = os.path.join(root, file)
+                    filtered_files.append(full_path)
+    
+    return filtered_files
 
 # Функция для отображения истории с пагинацией и улучшенным UI
 def display_history_with_pagination(history, page_size=10):
@@ -367,7 +611,130 @@ if page == "Генерация Markdown":
         )
 
     selected_template = st.selectbox("Select a template:", templates, index=templates.index(st.session_state.selected_template))
-    reference_url = st.text_input("Enter the reference URL (optional):", placeholder="e.g., https://example.com")    # Action buttons
+    reference_url = st.text_input("Enter the reference URL (optional):", placeholder="e.g., https://example.com")
+    
+    # Инициализация session state для новых настроек
+    if 'filter_settings' not in st.session_state:
+        st.session_state.filter_settings = {
+            'include_patterns': ['.py', '.js', '.ts', '.jsx', '.tsx', '.md', '.txt', '.json', '.yml', '.yaml'],
+            'exclude_patterns': ['node_modules', '__pycache__', '.git', 'venv', '.venv'],
+            'max_file_size': 50,  # KB
+            'selected_files': set()
+        }
+    
+    # Новая секция: Настройки фильтров
+    st.subheader("⚙️ Filter Settings")
+    
+    with st.expander("🔍 File Filtering Options", expanded=False):
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.write("**Include File Types:**")
+            include_input = st.text_area(
+                "File extensions or patterns to include (one per line):",
+                value='\n'.join(st.session_state.filter_settings['include_patterns']),
+                help="Examples: .py, .js, *.md, config.json"
+            )
+            st.session_state.filter_settings['include_patterns'] = [
+                pattern.strip() for pattern in include_input.split('\n') if pattern.strip()
+            ]
+            
+        with col2:
+            st.write("**Exclude Patterns:**")
+            exclude_input = st.text_area(
+                "Folders or files to exclude (one per line):",
+                value='\n'.join(st.session_state.filter_settings['exclude_patterns']),
+                help="Examples: node_modules, __pycache__, *.log, temp"
+            )
+            st.session_state.filter_settings['exclude_patterns'] = [
+                pattern.strip() for pattern in exclude_input.split('\n') if pattern.strip()
+            ]
+        
+        # Ограничение размера файлов
+        st.session_state.filter_settings['max_file_size'] = st.slider(
+            "Maximum file size (KB):",
+            min_value=1,
+            max_value=1000,
+            value=st.session_state.filter_settings['max_file_size'],
+            help="Files larger than this will be excluded"
+        )
+    
+    # Новая секция: Предварительный просмотр и выбор файлов
+    st.subheader("📁 File Selection")
+    
+    if project_path and os.path.isdir(project_path):
+        with st.expander("🌳 Project Structure (Select files to include)", expanded=True):
+            try:
+                # Получаем структуру файлов
+                file_tree = get_file_tree_structure(
+                    project_path,
+                    max_depth=3,
+                    include_patterns=st.session_state.filter_settings['include_patterns'],
+                    exclude_patterns=st.session_state.filter_settings['exclude_patterns'],
+                    max_file_size=st.session_state.filter_settings['max_file_size']
+                )
+                
+                if file_tree:
+                    st.write("**Select files and folders to include in the documentation:**")
+                    
+                    # Кнопки быстрого выбора
+                    sel_col1, sel_col2, sel_col3 = st.columns(3)
+                    with sel_col1:
+                        if st.button("📂 Select All", help="Select all visible files"):
+                            all_paths = []
+                            def collect_all_paths(structure):
+                                for name, info in structure.items():
+                                    all_paths.append(info['path'])
+                                    if info['type'] == 'folder' and info.get('children'):
+                                        collect_all_paths(info['children'])
+                            collect_all_paths(file_tree)
+                            st.session_state.filter_settings['selected_files'] = set(all_paths)
+                            st.rerun()
+                    
+                    with sel_col2:
+                        if st.button("📄 Code Files Only", help="Select only code files"):
+                            code_extensions = ['.py', '.js', '.ts', '.jsx', '.tsx', '.java', '.cpp', '.c', '.h']
+                            code_paths = []
+                            def collect_code_paths(structure):
+                                for name, info in structure.items():
+                                    if info['type'] == 'file':
+                                        _, ext = os.path.splitext(name)
+                                        if ext.lower() in code_extensions:
+                                            code_paths.append(info['path'])
+                                    elif info['type'] == 'folder' and info.get('children'):
+                                        collect_code_paths(info['children'])
+                            collect_code_paths(file_tree)
+                            st.session_state.filter_settings['selected_files'] = set(code_paths)
+                            st.rerun()
+                    
+                    with sel_col3:
+                        if st.button("🗑️ Clear Selection", help="Deselect all files"):
+                            st.session_state.filter_settings['selected_files'] = set()
+                            st.rerun()
+                    
+                    # Отображаем количество выбранных файлов
+                    selected_count = len([path for path in st.session_state.filter_settings['selected_files'] if os.path.isfile(path)])
+                    st.info(f"📊 Selected files: {selected_count}")
+                    
+                    # Рендерим дерево файлов с чекбоксами
+                    newly_selected = render_file_tree_ui(
+                        file_tree,
+                        selected_files=st.session_state.filter_settings['selected_files'],
+                        key_prefix="tree"
+                    )
+                    
+                    # Обновляем выбранные файлы
+                    if newly_selected != st.session_state.filter_settings['selected_files']:
+                        st.session_state.filter_settings['selected_files'] = newly_selected
+                        st.rerun()
+                else:
+                    st.warning("No files found matching the current filter criteria.")
+            except Exception as e:
+                st.error(f"Error loading project structure: {str(e)}")
+    else:
+        st.info("Enter a valid project path to see the file structure.")
+    
+    # Action buttons
     st.subheader("🚀 Actions")
     
     # Основные действия
@@ -375,7 +742,21 @@ if page == "Генерация Markdown":
     with col1:
         if st.button("Generate Markdown", help="Generate Markdown content based on the selected template"):
             if project_path and os.path.isdir(project_path):
-                st.session_state.markdown_content = generate_markdown(project_path, selected_template, reference_url)
+                # Используем новые настройки фильтров
+                selected_files = st.session_state.filter_settings['selected_files'] if st.session_state.filter_settings['selected_files'] else None
+                include_patterns = st.session_state.filter_settings['include_patterns']
+                exclude_patterns = st.session_state.filter_settings['exclude_patterns']
+                max_file_size = st.session_state.filter_settings['max_file_size']
+                
+                st.session_state.markdown_content = generate_markdown(
+                    project_path, 
+                    selected_template, 
+                    reference_url,
+                    selected_files=selected_files,
+                    include_patterns=include_patterns,
+                    exclude_patterns=exclude_patterns,
+                    max_file_size=max_file_size
+                )
                 st.session_state.project_path = project_path
                 st.session_state.selected_template = selected_template
                 st.toast("Markdown generated successfully!", icon="✅")
