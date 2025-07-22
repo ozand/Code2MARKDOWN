@@ -1,7 +1,3 @@
----
-description: AI rules derived by SpecStory from the project AI interaction history
-globs: *
----
 
 ## HEADERS
 
@@ -23,7 +19,6 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   Templates directory: Contains Handlebars templates for different documentation generation tasks.
 *   CHANGELOG.md: Records significant changes and version updates. Documents significant changes and version updates.
 *   CLEANUP_REPORT.md: Documents dependency cleanup efforts (if applicable).
-*   INTERACTIVE_SELECTION_GUIDE.md: User guide for the interactive file selection feature.
 
 ## CODING STANDARDS
 
@@ -40,9 +35,6 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   Exclude common virtual environment folders (e.g., `venv`, `node_modules`).
 *   Exclude package lock files (e.g., `package-lock.json`).
 *   Define file extensions to be processed (e.g., `.py`, `.js`, `.md`).
-*   Provide UI elements to configure which file types are processed and which are excluded.
-*   Ensure that when a parent folder is unchecked in the file tree, all subfolders and files within it are also deactivated.
-*   Folders/files specified in the "Folders or files to exclude" UI element must be excluded from the generated markdown.
 
 ## TEMPLATE RULES
 
@@ -55,8 +47,6 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   Use SQLite for storing request history.
 *   Implement pagination for efficient display of history.
 *   Sanitize database inputs to prevent SQL injection attacks.
-*   Ensure that the request history is persistent across sessions.
-*   Improve the history table to include paths and other relevant information to easily identify processed data.
 
 ## WORKFLOW & RELEASE RULES
 
@@ -95,11 +85,6 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   Use tooltips and clear labels for UI elements.
 *   Implement a file structure view with a maximum depth of 3 levels, allowing users to select which folders to include in the documentation.
 *   Provide UI elements to configure which file types are processed and which are excluded.
-*   Implement an interactive file selection tree, allowing users to choose which folders to include in the documentation.
-*   The file selection tree should display a maximum depth of 3 levels.
-*   The UI should allow users to configure which file types are processed and which are excluded.
-*   Provide quick selection tools (e.g., "Select All," "Code Only," "Clear").
-*   Display a live file counter to provide feedback on the number of files selected.
 
 ## SECURITY RULES
 
@@ -123,7 +108,6 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 
 *   Create an XML structure with metadata (project name, generation date, generator).
 *   Include the generated Markdown content within the XML structure.
-*   The XML structure should include the project name, generation date, and generator.
 
 ## TESTING
 

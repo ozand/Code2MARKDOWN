@@ -26,22 +26,46 @@ def init_db():
             template_name TEXT NOT NULL,
             markdown_content TEXT NOT NULL,
             reference_url TEXT,
-            processed_at DATETIME NOT NULL
+            processed_at DATETIME NOT NULL,
+            file_count INTEGER DEFAULT 0,
+            filter_settings TEXT,
+            project_name TEXT
         )
     ''')
+    
+    # Add new columns if they don't exist (for backward compatibility)
+    try:
+        cursor.execute('ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
+    try:
+        cursor.execute('ALTER TABLE requests ADD COLUMN filter_settings TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+        
+    try:
+        cursor.execute('ALTER TABLE requests ADD COLUMN project_name TEXT')
+    except sqlite3.OperationalError:
+        pass  # Column already exists
+    
     conn.commit()
     conn.close()
 
 init_db()
 
 # Save to database
-def save_to_db(project_path, template_name, markdown_content, reference_url=None):
+def save_to_db(project_path, template_name, markdown_content, reference_url=None, file_count=0, filter_settings=None):
     conn = sqlite3.connect('code2markdown.db')
     cursor = conn.cursor()
+    
+    project_name = os.path.basename(os.path.abspath(project_path)) if project_path else "Unknown"
+    filter_settings_json = json.dumps(filter_settings) if filter_settings else None
+    
     cursor.execute('''
-        INSERT INTO requests (project_path, template_name, markdown_content, reference_url, processed_at)
-        VALUES (?, ?, ?, ?, ?)
-    ''', (project_path, template_name, markdown_content, reference_url, datetime.now()))
+        INSERT INTO requests (project_path, template_name, markdown_content, reference_url, processed_at, file_count, filter_settings, project_name)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ''', (project_path, template_name, markdown_content, reference_url, datetime.now(), file_count, filter_settings_json, project_name))
     conn.commit()
     conn.close()
 
@@ -181,7 +205,17 @@ def generate_markdown(project_path, template_name, reference_url=None, selected_
     
     markdown_content = template(context)
     markdown_content = html.unescape(markdown_content)
-    save_to_db(project_path, template_name, markdown_content, reference_url)
+    
+    # Подготовка дополнительной информации для сохранения
+    file_count = len(files)
+    filter_settings_info = {
+        'include_patterns': include_patterns,
+        'exclude_patterns': exclude_patterns,
+        'max_file_size': max_file_size,
+        'selected_files_count': len(selected_files) if selected_files else 0
+    }
+    
+    save_to_db(project_path, template_name, markdown_content, reference_url, file_count, filter_settings_info)
     return markdown_content
 
 def build_structure_from_selected(project_path, selected_files):
@@ -289,9 +323,21 @@ def get_file_tree_structure(path, max_depth=3, current_depth=0, include_patterns
                 if item.startswith('.') or item in ["venv", "env", "__pycache__", "node_modules", "dist", "build"]:
                     continue
                     
-                # Проверяем exclude patterns
-                if exclude_patterns and any(item.lower() in pattern.lower() for pattern in exclude_patterns):
-                    continue
+                # Проверяем exclude patterns - исправленная логика
+                if exclude_patterns:
+                    should_exclude_folder = False
+                    for pattern in exclude_patterns:
+                        pattern = pattern.strip()
+                        if not pattern:
+                            continue
+                        # Проверяем точное совпадение имени папки или паттерн содержания
+                        if (item.lower() == pattern.lower() or 
+                            pattern.lower() in item.lower() or
+                            item.lower() in pattern.lower()):
+                            should_exclude_folder = True
+                            break
+                    if should_exclude_folder:
+                        continue
                     
                 structure[item] = {
                     'type': 'folder',
@@ -311,15 +357,59 @@ def get_file_tree_structure(path, max_depth=3, current_depth=0, include_patterns
                     except:
                         continue
                 
-                # Проверяем include patterns
+                # Проверяем include patterns - улучшенная логика
                 if include_patterns:
-                    file_ext = os.path.splitext(item)[1].lower()
-                    if not any(pattern.lower() in item.lower() or file_ext == pattern.lower() for pattern in include_patterns):
+                    filename = os.path.basename(item)
+                    file_ext = os.path.splitext(filename)[1].lower()
+                    should_include = False
+                    
+                    for pattern in include_patterns:
+                        pattern = pattern.strip()
+                        if not pattern:
+                            continue
+                        # Если паттерн начинается с точки - это расширение
+                        if pattern.startswith('.'):
+                            if file_ext == pattern.lower():
+                                should_include = True
+                                break
+                        # Если содержит звездочку - это wildcard паттерн
+                        elif '*' in pattern:
+                            import fnmatch
+                            if fnmatch.fnmatch(filename.lower(), pattern.lower()):
+                                should_include = True
+                                break
+                        # Иначе проверяем вхождение в имя файла
+                        else:
+                            if pattern.lower() in filename.lower():
+                                should_include = True
+                                break
+                    
+                    if not should_include:
                         continue
                 
-                # Проверяем exclude patterns  
-                if exclude_patterns and any(pattern.lower() in item.lower() for pattern in exclude_patterns):
-                    continue
+                # Проверяем exclude patterns - улучшенная логика
+                if exclude_patterns:
+                    filename = os.path.basename(item)
+                    should_exclude_file = False
+                    
+                    for pattern in exclude_patterns:
+                        pattern = pattern.strip()
+                        if not pattern:
+                            continue
+                        # Если содержит звездочку - это wildcard паттерн
+                        if '*' in pattern:
+                            import fnmatch
+                            if fnmatch.fnmatch(filename.lower(), pattern.lower()):
+                                should_exclude_file = True
+                                break
+                        # Иначе проверяем вхождение
+                        else:
+                            if pattern.lower() in filename.lower():
+                                should_exclude_file = True
+                                break
+                    
+                    if should_exclude_file:
+                        continue
                     
                 structure[item] = {
                     'type': 'file',
@@ -336,35 +426,42 @@ def render_file_tree_ui(structure, prefix="", selected_files=None, key_prefix=""
     if selected_files is None:
         selected_files = set()
     
-    newly_selected = set()
+    newly_selected = set(selected_files)  # Начинаем с текущего выбора
     
     for name, info in structure.items():
-        current_key = f"{key_prefix}_{name}_{info['path']}"
+        current_key = f"{key_prefix}_{name}_{hash(info['path'])}"  # Используем hash для уникальности
         indent = "　" * len(prefix.split("├── ")) if prefix else ""
         
         if info['type'] == 'folder':
+            # Проверяем, выбраны ли все дочерние элементы
+            child_paths = get_all_child_paths(info)
+            all_children_selected = all(path in selected_files for path in child_paths) if child_paths else False
+            
             # Folder checkbox
             folder_selected = st.checkbox(
                 f"{indent}📁 {name}/",
-                value=info['path'] in selected_files,
+                value=all_children_selected,
                 key=f"folder_{current_key}"
             )
             
             if folder_selected:
-                newly_selected.add(info['path'])
-                # Auto-select all children
-                for child_path in get_all_child_paths(info):
+                # Выбираем все дочерние элементы
+                for child_path in child_paths:
                     newly_selected.add(child_path)
+            else:
+                # Снимаем выбор со всех дочерних элементов
+                for child_path in child_paths:
+                    newly_selected.discard(child_path)
             
             # Render children
             if info.get('children'):
                 child_selected = render_file_tree_ui(
                     info['children'], 
                     prefix + "├── ", 
-                    selected_files.union(newly_selected),
+                    newly_selected,
                     key_prefix + f"_{name}"
                 )
-                newly_selected.update(child_selected)
+                newly_selected = child_selected
                 
         else:
             # File checkbox
@@ -379,6 +476,8 @@ def render_file_tree_ui(structure, prefix="", selected_files=None, key_prefix=""
             
             if file_selected:
                 newly_selected.add(info['path'])
+            else:
+                newly_selected.discard(info['path'])
     
     return newly_selected
 
@@ -442,93 +541,134 @@ def get_filtered_files_interactive(path, selected_files=None, include_patterns=N
 # Функция для отображения истории с пагинацией и улучшенным UI
 def display_history_with_pagination(history, page_size=10):
     total_records = len(history)
-    total_pages = math.ceil(total_records / page_size)
+    total_pages = math.ceil(total_records / page_size) if total_records > 0 else 1
+    
+    if total_records == 0:
+        st.info("📝 История пуста. Создайте свой первый запрос!")
+        return
     
     # Пагинация
     page_number = st.number_input("Страница", min_value=1, max_value=total_pages, value=1, step=1)
     start_index = (page_number - 1) * page_size
     end_index = start_index + page_size
-    paginated_history = history[start_index:end_index]    # Отображение заголовков
-    col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 3])  # Увеличена последняя колонка для кнопок
-    with col1:
-        st.markdown("**ID**", help="Уникальный идентификатор записи")
-    with col2:
-        st.markdown("**Project Path**", help="Путь к проекту")
-    with col3:
-        st.markdown("**Template**", help="Используемый шаблон")
-    with col4:
-        st.markdown("**Processed At**", help="Время обработки")
-    with col5:
-        st.markdown("**Actions**", help="Копировать | Скачать | Удалить")    # Отображение данных
+    paginated_history = history[start_index:end_index]
+    
+    # Отображение заголовков с улучшенным дизайном
+    st.markdown("### 📊 История Запросов")
+    
+    # Создаем DataFrame для лучшего отображения
+    display_data = []
     for record in paginated_history:
-        with st.container():
-            col1, col2, col3, col4, col5 = st.columns([1, 4, 2, 2, 3])  # Увеличена последняя колонка
+        # record structure: id, project_path, template_name, markdown_content, reference_url, processed_at, file_count, filter_settings, project_name
+        record_id = record[0] if len(record) > 0 else "N/A"
+        project_path = record[1] if len(record) > 1 else "N/A"
+        template_name = record[2] if len(record) > 2 else "N/A"
+        markdown_content = record[3] if len(record) > 3 else ""
+        reference_url = record[4] if len(record) > 4 else ""
+        processed_at = record[5] if len(record) > 5 else "N/A"
+        file_count = record[6] if len(record) > 6 else 0
+        filter_settings = record[7] if len(record) > 7 else None
+        project_name = record[8] if len(record) > 8 else os.path.basename(project_path) if project_path != "N/A" else "Unknown"
+        
+        # Parsing filter settings
+        filter_info = "No filters"
+        if filter_settings:
+            try:
+                settings = json.loads(filter_settings)
+                include_patterns = settings.get('include_patterns', [])
+                exclude_patterns = settings.get('exclude_patterns', [])
+                max_file_size = settings.get('max_file_size', 0)
+                selected_count = settings.get('selected_files_count', 0)
+                
+                filter_parts = []
+                if include_patterns:
+                    filter_parts.append(f"Include: {', '.join(include_patterns[:3])}{'...' if len(include_patterns) > 3 else ''}")
+                if exclude_patterns:
+                    filter_parts.append(f"Exclude: {', '.join(exclude_patterns[:2])}{'...' if len(exclude_patterns) > 2 else ''}")
+                if max_file_size:
+                    filter_parts.append(f"Max: {max_file_size}KB")
+                if selected_count:
+                    filter_parts.append(f"Selected: {selected_count}")
+                
+                filter_info = " | ".join(filter_parts) if filter_parts else "Default filters"
+            except:
+                filter_info = "Legacy format"
+        
+        display_data.append({
+            "ID": record_id,
+            "Project": project_name,
+            "Template": template_name.replace('.hbs', ''),
+            "Files": file_count or 0,
+            "Filters": filter_info,
+            "Date": processed_at.split('.')[0] if processed_at != "N/A" else "N/A",  # Remove microseconds
+            "Path": project_path,
+            "Content": markdown_content,
+            "Reference": reference_url
+        })
+    
+    # Отображение данных
+    for i, data in enumerate(display_data):
+        with st.expander(f"🗂️ {data['Project']} - {data['Template']} ({data['Date']})", expanded=False):
+            # Основная информация
+            col1, col2, col3 = st.columns(3)
             with col1:
-                st.markdown(f"{record[0]}")  # ID
+                st.markdown(f"**📁 Project:** {data['Project']}")
+                st.markdown(f"**📄 Template:** {data['Template']}")
             with col2:
-                # Извлекаем название финальной папки
-                folder_name = os.path.basename(record[1])
-                # Добавляем значок "?" с всплывающей подсказкой
-                path_col, button_col = st.columns([4, 1])
-                with path_col:
-                    st.markdown(
-                        f"{folder_name} <span style='color: gray;' title='{record[1]}'>❔</span>",
-                        unsafe_allow_html=True
-                    )
-                with button_col:
-                    if st.button("📋", key=f"copy_path_{record[0]}", help="Копировать путь"):
-                        
-                        pyperclip.copy(record[1])
-                        st.toast("Путь скопирован в буфер обмена!", icon="✅")  # Временное сообщение
+                st.markdown(f"**📊 Files Processed:** {data['Files']}")
+                st.markdown(f"**📅 Date:** {data['Date']}")
             with col3:
-                st.markdown(f"{record[2]}")  # Template
-            with col4:
-                st.markdown(f"{record[5]}")  # Processed At            with col5:
-                # Используем st.columns для размещения кнопок в одной строке
-                button_col1, button_col2, button_col3 = st.columns([1, 1, 1])
-                with button_col1:
-                    if st.button("📋", key=f"copy_{record[0]}", help="Копировать markdown"):
-                        pyperclip.copy(record[3])
-                        st.toast("Markdown скопирован в буфер обмена!", icon="✅")
-                        
-                with button_col2:
-                    # Кнопка скачивания с выпадающим меню форматов
-                    download_format = st.selectbox(
-                        "Format",
-                        options=["txt", "md", "xml"],
-                        key=f"format_{record[0]}",
-                        label_visibility="collapsed",
-                        help="Выберите формат для скачивания"
-                    )
-                    
-                    # Подготавливаем контент для скачивания
-                    file_content, filename, mime_type = prepare_file_content(
-                        record[3], download_format, record[1]
-                    )
-                    
+                st.markdown(f"**🔗 Reference:** {data['Reference'] if data['Reference'] else 'None'}")
+                if data['Path'] != "N/A":
+                    if st.button("📋 Copy Path", key=f"copy_path_{data['ID']}", help="Copy project path"):
+                        pyperclip.copy(data['Path'])
+                        st.toast("Project path copied!", icon="✅")
+            
+            # Информация о фильтрах
+            st.markdown(f"**⚙️ Filters Applied:** {data['Filters']}")
+            
+            # Полный путь (expandable)
+            if data['Path'] != "N/A":
+                with st.expander("📂 Full Path", expanded=False):
+                    st.code(data['Path'])
+            
+            # Действия
+            st.markdown("**🚀 Actions:**")
+            action_col1, action_col2, action_col3, action_col4 = st.columns(4)
+            
+            with action_col1:
+                if st.button("📋 Copy Content", key=f"copy_content_{data['ID']}", help="Copy markdown content"):
+                    pyperclip.copy(data['Content'])
+                    st.toast("Content copied to clipboard!", icon="✅")
+            
+            with action_col2:
+                download_format = st.selectbox(
+                    "Format",
+                    options=["txt", "md", "xml"],
+                    key=f"format_{data['ID']}",
+                    help="Select download format"
+                )
+            
+            with action_col3:
+                if data['Content']:
+                    content, filename, mime_type = prepare_file_content(data['Content'], download_format, data['Path'])
                     st.download_button(
-                        label="💾",
-                        data=file_content,
+                        label=f"💾 Download {download_format.upper()}",
+                        data=content,
                         file_name=filename,
                         mime=mime_type,
-                        key=f"download_{record[0]}",
-                        help=f"Скачать как {download_format.upper()}"
+                        key=f"download_{data['ID']}_{download_format}"
                     )
-                    
-                with button_col3:
-                    if st.button("🗑️", key=f"delete_{record[0]}", help="Удалить запись"):
-                        delete_record(record[0])
-                        st.toast("Запись удалена!", icon="🗑️")
-                        # Trigger rerun by updating session state
-                        st.session_state.rerun = True
             
-            # Добавляем тонкий разделитель между записями
-            st.markdown("<hr style='margin: 0.5rem 0;'>", unsafe_allow_html=True)
-
-    # Add a check to rerun the app
-    if st.session_state.rerun:
-        st.session_state.rerun = False  # Reset the flag
-        st.rerun()  # Trigger a rerun of the app
+            with action_col4:
+                if st.button("🗑️ Delete", key=f"delete_{data['ID']}", help="Delete this record", type="secondary"):
+                    delete_record(data['ID'])
+                    st.success("Record deleted!")
+                    st.rerun()
+    
+    # Информация о пагинации
+    if total_pages > 1:
+        st.markdown(f"📄 Showing page {page_number} of {total_pages} ({total_records} total records)")
 
 # Получаем уникальные пути из истории
 def get_unique_project_paths(limit=10):
@@ -723,8 +863,14 @@ if page == "Генерация Markdown":
                         key_prefix="tree"
                     )
                     
-                    # Обновляем выбранные файлы
-                    if newly_selected != st.session_state.filter_settings['selected_files']:
+                    # Обновляем выбранные файлы - исправленная логика
+                    current_selected = st.session_state.filter_settings['selected_files']
+                    if isinstance(current_selected, list):
+                        current_selected = set(current_selected)
+                    if isinstance(newly_selected, list):
+                        newly_selected = set(newly_selected)
+                        
+                    if newly_selected != current_selected:
                         st.session_state.filter_settings['selected_files'] = newly_selected
                         st.rerun()
                 else:

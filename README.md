@@ -102,13 +102,13 @@ See the [Interactive Selection Guide](INTERACTIVE_SELECTION_GUIDE.md) for detail
 
 ## 📋 Available Templates
 
-| Template | Purpose |
-|----------|---------|
-| `default_template.hbs` | Basic project documentation |
-| `document-the-code.hbs` | Add comprehensive code documentation |
-| `write-github-readme.hbs` | Generate GitHub README files |
-| `find-security-vulnerabilities.hbs` | Security analysis |
-| `clean-up-code.hbs` | Code cleanup suggestions |
+| Template                            | Purpose                              |
+| ----------------------------------- | ------------------------------------ |
+| `default_template.hbs`              | Basic project documentation          |
+| `document-the-code.hbs`             | Add comprehensive code documentation |
+| `write-github-readme.hbs`           | Generate GitHub README files         |
+| `find-security-vulnerabilities.hbs` | Security analysis                    |
+| `clean-up-code.hbs`                 | Code cleanup suggestions             |
 
 [View all templates](templates/)
 
@@ -128,11 +128,11 @@ The application now supports multiple download formats:
 
 ### Available Formats
 
-| Format | Description | Use Case |
-|--------|-------------|----------|
-| **TXT** | Plain text format | Simple documentation, notes |
-| **MD** | Markdown format | GitHub, documentation sites |
-| **XML** | Structured XML format | Data exchange, archival |
+| Format  | Description           | Use Case                    |
+| ------- | --------------------- | --------------------------- |
+| **TXT** | Plain text format     | Simple documentation, notes |
+| **MD**  | Markdown format       | GitHub, documentation sites |
+| **XML** | Structured XML format | Data exchange, archival     |
 
 ### Download Locations
 
