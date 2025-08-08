@@ -1,7 +1,68 @@
 [project]
 name = "code2markdown"
-version = "0.1.0"
-description = "Add your description here"
+version = "1.2.3"
+description = "A powerful Streamlit-based web application that generates structured Markdown documentation from your project's source code with interactive file selection and advanced filtering options."
 readme = "README.md"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "streamlit>=1.38.0",
+    "pybars3>=0.9.7",
+    "pathspec>=0.12.1",
+    "pyperclip>=1.9.0",
+    "pandas>=2.2.3",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*", "scripts*"]
+namespaces = false
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.3.4",
+    "pytest-cov>=6.0.0",
+    "mypy>=1.13.0",
+    "pydeps>=1.9.13",
+]
+
+[project.scripts]
+test = "pytest:main"
+test-cov = "pytest:main"
+dead-code = "vulture:main"
+audit = "pip_audit:main"
+check-cycles = "scripts.check_cycles:main"
+
+[tool.ruff]
+line-length = 90
+[tool.ruff.lint]
+select = ["F","E","W","I","UP","B","BLE", "TID252"]
+ignore = ["E501"]
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+cache_dir = "tmp_cache"
+
+[tool.mypy]
+# Игнорировать отсутствие stub-файлов для указанных модулей
+ignore_missing_imports = true
+# Можно также явно указать модули, если не хотим игнорировать все
+# [[tool.mypy.overrides]]
+# module = ["pybars", "pyperclip"]
+# ignore_missing_imports = true
+
+# Проверять тела функций без аннотаций типов
+check_untyped_defs = true
+
+# Показывать заметки (notes)
+show_error_codes = true
+
+[dependency-groups]
+dev = [
+    "coverage>=7.10.2",
+    "pip-audit>=2.9.0",
+    "pytest-cov>=6.2.1",
+    "vulture>=2.14",
+    "pydeps>=1.9.13",
+]

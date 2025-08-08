@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.9
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.11.2
+    hooks:
+      - id: mypy
+  - repo: local
+    hooks:
+      - id: check-circular-imports
+        name: check circular imports
+        entry: python scripts/development/check_circular_imports.py
+        language: python
+        types: [python]
+        require_serial: true

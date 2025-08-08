@@ -43,6 +43,11 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   Provide UI elements to configure which file types are processed and which are excluded.
 *   Ensure that when a parent folder is unchecked in the file tree, all subfolders and files within it are also deactivated.
 *   Folders/files specified in the "Folders or files to exclude" UI element must be excluded from the generated markdown.
+*   Support wildcard patterns for file and folder exclusion (e.g., `*.js`, `temp*`, `node_modules`).
+*   Add a button to read `.gitignore` and automatically add exclusions.
+*   Add buttons for quick processing of specific folders: "AI Agents" (memory-bank, .specstory) and "docs".
+*   Link Filter Settings with File Selection: Only files available for processing should be displayed in the File Selection tree.
+*   Add a selector or checkbox to "Show Excluded Files and Folders". When active, excluded items should be displayed but visually distinct (e.g., grayed out, strikethrough).
 
 ## TEMPLATE RULES
 
@@ -56,7 +61,7 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   Implement pagination for efficient display of history.
 *   Sanitize database inputs to prevent SQL injection attacks.
 *   Ensure that the request history is persistent across sessions.
-*   Improve the history table to include paths and other relevant information to easily identify processed data.
+*   Improve the history table to include paths and other relevant information to easily identify processed data, including the project name, number of files processed, and applied filters.
 
 ## WORKFLOW & RELEASE RULES
 
@@ -84,6 +89,8 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   Handle `ModuleNotFoundError` for missing dependencies.
 *   Display user-friendly error messages in the Streamlit app.
 *   Log errors for debugging purposes.
+*   Handle `StreamlitAPIException` for expanders nested inside other expanders.
+*   Handle `UTF-8` decode errors by skipping binary files.
 
 ## USER INTERFACE (UI) RULES
 
@@ -100,6 +107,10 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   The UI should allow users to configure which file types are processed and which are excluded.
 *   Provide quick selection tools (e.g., "Select All," "Code Only," "Clear").
 *   Display a live file counter to provide feedback on the number of files selected.
+*   Add a button to read `.gitignore` and automatically add exclusions.
+*   Add buttons for quick processing of specific folders: "AI Agents" (memory-bank, .specstory) and "docs".
+*   The Filter Settings should be linked with the File Selection tree, so that only files available for processing are displayed.
+*   Add a selector or checkbox to "Show Excluded Files and Folders". When active, excluded items should be displayed but visually distinct (e.g., grayed out, strikethrough).
 
 ## SECURITY RULES
 
@@ -124,6 +135,18 @@ This file defines the rules, coding standards, workflow guidelines, references, 
 *   Create an XML structure with metadata (project name, generation date, generator).
 *   Include the generated Markdown content within the XML structure.
 *   The XML structure should include the project name, generation date, and generator.
+*   The XML structure should include:
+    ```xml
+    <project>
+      <metadata>
+        <name>ProjectName</name>
+        <generated_at>2025-06-10T16:47:57</generated_at>
+        <generator>Code2MARKDOWN</generator>
+      </metadata>
+      <content>[Markdown content]</content>
+    </project>
+    ```
+*   Clean XML content to ensure it is well-formed by escaping or removing invalid characters.
 
 ## TESTING
 

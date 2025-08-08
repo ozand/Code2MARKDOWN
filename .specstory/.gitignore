@@ -2,3 +2,5 @@
 /.project.json
 # SpecStory copilot-instructions.md backup files
 .specstory/ai_rules_backups/*
+# SpecStory explanation file
+/.what-is-this.md
