@@ -5,6 +5,29 @@ All notable changes to Code2MARKDOWN will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2025-08-09
+
+### Fixed
+- **Select All button issues**: Resolved problems with the "Select All" button in the file selection interface that caused screen flickering and constant loading indicators
+- **Max depth comparison error**: Fixed error when comparing None and int values in the max_depth functionality
+- **File selection stability**: Improved stability of file selection interface with depth scanning functionality
+
+### Changed
+- **UI improvements**: Removed unnecessary st.rerun() calls that caused interface flickering
+- **Filter settings**: Enhanced FilterSettings object handling for better state management
+- **Performance optimizations**: Optimized file tree rendering and selection updates
+
+## [1.3.0] - 2025-08-09
+
+### Added
+- **Depth scanning functionality**: Added max_depth parameter to control the depth of directory scanning
+- **Enhanced file tree display**: Improved visual representation of file structure with depth limitations
+- **Advanced selection controls**: Enhanced file selection interface with better handling of large projects
+
+### Fixed
+- **File selection issues**: Resolved various problems with file selection and state management
+- **Interface stability**: Improved stability of the file selection interface with large projects
+
 ## [1.2.0] - 2025-07-22
 
 ### Added
