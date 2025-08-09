@@ -15,10 +15,10 @@ import tornado.iostream
 import tornado.websocket
 from pybars import Compiler
 
-from .application.services import GenerationService  # Добавлен импорт GenerationService
-from .domain.files import DirectoryNode, FileNode, ProjectTreeBuilder
-from .domain.filters import FileSize, FilterSettings
-from .infrastructure.database import SqliteHistoryRepository
+from code2markdown.application.services import GenerationService  # Добавлен импорт GenerationService
+from code2markdown.domain.files import DirectoryNode, FileNode, ProjectTreeBuilder
+from code2markdown.domain.filters import FileSize, FilterSettings
+from code2markdown.infrastructure.database import SqliteHistoryRepository
 
 # Настройка ширины экрана
 st.set_page_config(layout="wide")

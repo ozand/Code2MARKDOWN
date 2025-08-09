@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from ..domain.request import GenerationRequest
+from code2markdown.domain.request import GenerationRequest
 
 
 class IHistoryRepository(ABC):

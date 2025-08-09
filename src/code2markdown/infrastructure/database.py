@@ -3,9 +3,9 @@ import os
 import sqlite3
 from datetime import datetime
 
-from ..application.repository import IHistoryRepository
-from ..domain.filters import FileSize, FilterSettings
-from ..domain.request import GenerationRequest
+from code2markdown.application.repository import IHistoryRepository
+from code2markdown.domain.filters import FileSize, FilterSettings
+from code2markdown.domain.request import GenerationRequest
 
 
 class SqliteHistoryRepository(IHistoryRepository):

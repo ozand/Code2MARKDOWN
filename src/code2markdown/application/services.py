@@ -4,10 +4,10 @@ from datetime import datetime
 
 from pybars import Compiler
 
-from ..domain.files import DirectoryNode, FileNode, ProjectTreeBuilder
-from ..domain.filters import FilterSettings
-from ..domain.request import GenerationRequest
-from .repository import IHistoryRepository
+from code2markdown.domain.files import DirectoryNode, FileNode, ProjectTreeBuilder
+from code2markdown.domain.filters import FilterSettings
+from code2markdown.domain.request import GenerationRequest
+from code2markdown.application.repository import IHistoryRepository
 
 
 class GenerationService:
