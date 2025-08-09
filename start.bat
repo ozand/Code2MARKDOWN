@@ -5,8 +5,8 @@ echo ================================
 echo.
 
 REM Check if we're in the correct directory
-if not exist "app.py" (
-    echo ❌ Error: app.py not found. Please run this script from the project root.
+if not exist "src\code2markdown\app.py" (
+    echo ❌ Error: src/code2markdown/app.py not found. Please run this script from the project root.
     pause
     exit /b 1
 )
@@ -38,7 +38,7 @@ echo 📱 The app will open in your default browser
 echo 🛑 Press Ctrl+C in this window to stop the server
 echo.
 
-streamlit run app.py
+streamlit run src/code2markdown/app.py
 
 echo.
 echo 👋 Application stopped.
