@@ -4,10 +4,10 @@ from datetime import datetime
 
 from pybars import Compiler
 
+from code2markdown.application.repository import IHistoryRepository
 from code2markdown.domain.files import DirectoryNode, FileNode, ProjectTreeBuilder
 from code2markdown.domain.filters import FilterSettings
 from code2markdown.domain.request import GenerationRequest
-from code2markdown.application.repository import IHistoryRepository
 
 
 class GenerationService:
@@ -175,7 +175,7 @@ class GenerationService:
     def _process_files_from_tree(
         self,
         node: DirectoryNode,
-        selected_files: list[str],
+        selected_files: list[str] | None,
         files: list[dict],
         filters: FilterSettings,
     ):
@@ -193,7 +193,7 @@ class GenerationService:
                 self._process_files_from_tree(child, selected_files, files, filters)
             elif isinstance(child, FileNode):
                 # Skip if we have selected files and this file is not in the list
-                if selected_files is not None and child.path not in selected_files:
+                if selected_files is not None and child.path not in (selected_files or []):
                     continue
 
                 # Skip binary files
@@ -269,7 +269,7 @@ class GenerationService:
 
                 # Проходим по всем файлам в дереве
                 self._process_files_from_tree(
-                    root_node, selected_files or [], files, filters
+                    root_node, selected_files, files, filters
                 )
             else:
                 project_structure = "Error: Could not build project tree."
@@ -286,7 +286,7 @@ class GenerationService:
                 project_structure = self._build_project_structure_from_tree(root_node)
 
                 # Проходим по всем файлам в дереве
-                self._process_files_from_tree(root_node, [], files, filters)
+                self._process_files_from_tree(root_node, None, files, filters)
             else:
                 project_structure = "Error: Could not build project tree."
 
