@@ -267,7 +267,11 @@ class ProjectTreeBuilder:
 
         # Проверяем ограничение глубины из настроек фильтрации
         # Если мы достигли максимальной глубины, не сканируем содержимое директории
-        if filters.max_depth is not None and filters.max_depth >= 0 and current_depth >= filters.max_depth:
+        if (
+            filters.max_depth is not None
+            and filters.max_depth >= 0
+            and current_depth >= filters.max_depth
+        ):
             return dir_node
 
         # Получаем содержимое директории

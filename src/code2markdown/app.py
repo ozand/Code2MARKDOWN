@@ -46,10 +46,12 @@ def init_db():
                     project_name TEXT
                 )
             """)
-            
+
             # Add new columns if they don't exist (for backward compatibility)
             try:
-                cursor.execute("ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0")
+                cursor.execute(
+                    "ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0"
+                )
             except sqlite3.OperationalError:
                 pass  # Column already exists
 
@@ -84,10 +86,12 @@ def init_db():
                         project_name TEXT
                     )
                 """)
-                
+
                 # Add new columns if they don't exist (for backward compatibility)
                 try:
-                    cursor.execute("ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0")
+                    cursor.execute(
+                        "ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0"
+                    )
                 except sqlite3.OperationalError:
                     pass  # Column already exists
 
@@ -121,10 +125,12 @@ def init_db():
                         project_name TEXT
                     )
                 """)
-                
+
                 # Add new columns if they don't exist (for backward compatibility)
                 try:
-                    cursor.execute("ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0")
+                    cursor.execute(
+                        "ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0"
+                    )
                 except sqlite3.OperationalError:
                     pass  # Column already exists
 
@@ -1596,7 +1602,11 @@ try:
                     # Кнопки быстрого выбора
                     sel_col1, sel_col2, sel_col3 = st.columns(3)
                     with sel_col1:
-                        if st.button("📂 Select All", help="Select all visible files", key="select_all_btn"):
+                        if st.button(
+                            "📂 Select All",
+                            help="Select all visible files",
+                            key="select_all_btn",
+                        ):
                             if st.session_state.get("file_tree"):
                                 all_paths = []
 
@@ -1627,7 +1637,11 @@ try:
                                 st.warning("Please scan the project structure first")
 
                     with sel_col2:
-                        if st.button("📄 Code Files Only", help="Select only code files", key="code_only_btn"):
+                        if st.button(
+                            "📄 Code Files Only",
+                            help="Select only code files",
+                            key="code_only_btn",
+                        ):
                             code_extensions = [
                                 ".py",
                                 ".js",
@@ -1667,7 +1681,11 @@ try:
                             )
 
                     with sel_col3:
-                        if st.button("🗑️ Clear Selection", help="Deselect all files", key="clear_selection_btn"):
+                        if st.button(
+                            "🗑️ Clear Selection",
+                            help="Deselect all files",
+                            key="clear_selection_btn",
+                        ):
                             # Создаем новую FilterSettings с пустым selected_files
                             current = st.session_state.filter_settings
                             st.session_state.filter_settings = FilterSettings(
@@ -1688,7 +1706,7 @@ try:
                         ]
                     )
                     st.info(f"📊 Selected files: {selected_count}")
-                    
+
                     # Отладочная информация
                     # st.write(f"DEBUG: selected_files length: {len(st.session_state.filter_settings.selected_files)}")
                     # st.write(f"DEBUG: file_tree keys: {list(st.session_state.file_tree.keys()) if st.session_state.get('file_tree') else 'No file tree'}")
@@ -1843,7 +1861,7 @@ finally:
         try:
             st._websocket.close()
             # print("WebSocket соединение закрыто успешно")  # Убрано для уменьшения вывода в терминал
-        except Exception as e:
+        except Exception:
             # print(f"Ошибка при закрытии WebSocket: {str(e)}")  # Убрано для уменьшения вывода в терминал
             pass
 
@@ -1852,6 +1870,6 @@ finally:
         try:
             st.session_state.db_conn.close()
             # print("Соединение с базой данных закрыто")  # Убрано для уменьшения вывода в терминал
-        except Exception as e:
+        except Exception:
             # print(f"Ошибка при закрытии базы данных: {str(e)}")  # Убрано для уменьшения вывода в терминал
             pass
