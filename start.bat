@@ -32,6 +32,15 @@ if errorlevel 1 (
     )
 )
 
+REM Install the package in development mode to make imports work
+echo 📦 Installing package in development mode...
+pip install -e .
+if errorlevel 1 (
+    echo ❌ Failed to install package in development mode.
+    pause
+    exit /b 1
+)
+
 echo.
 echo 🚀 Starting Code2MARKDOWN application...
 echo 📱 The app will open in your default browser
