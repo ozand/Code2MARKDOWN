@@ -13,8 +13,8 @@ dependencies = [
 ]
 
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["src*", "scripts*"]
+where = ["src"]
+include = ["code2markdown*"]
 namespaces = false
 [project.optional-dependencies]
 dev = [
