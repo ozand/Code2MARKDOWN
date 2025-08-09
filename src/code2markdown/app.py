@@ -15,7 +15,9 @@ import tornado.iostream
 import tornado.websocket
 from pybars import Compiler
 
-from code2markdown.application.services import GenerationService  # Добавлен импорт GenerationService
+from code2markdown.application.services import (
+    GenerationService,  # Добавлен импорт GenerationService
+)
 from code2markdown.domain.files import DirectoryNode, FileNode, ProjectTreeBuilder
 from code2markdown.domain.filters import FileSize, FilterSettings
 from code2markdown.infrastructure.database import SqliteHistoryRepository
@@ -44,10 +46,27 @@ def init_db():
                     project_name TEXT
                 )
             """)
-            # Сохраняем соединение в session_state для последующего закрытия
-            st.session_state.db_conn = conn
+            
+            # Add new columns if they don't exist (for backward compatibility)
+            try:
+                cursor.execute("ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+
+            try:
+                cursor.execute("ALTER TABLE requests ADD COLUMN filter_settings TEXT")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+
+            try:
+                cursor.execute("ALTER TABLE requests ADD COLUMN project_name TEXT")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+
+            conn.commit()
+            # Соединение автоматически закроется при выходе из блока with
     except sqlite3.OperationalError as e:
-        st.error(f"Ошибка подключения к базе данных: {str(e)}")
+        st.error(f"Ошибка подключения к базой данных: {str(e)}")
         try:
             # Попробовать снова с уменьшенным таймаутом
             with sqlite3.connect("code2markdown.db", timeout=5.0) as conn:
@@ -65,44 +84,62 @@ def init_db():
                         project_name TEXT
                     )
                 """)
-                st.session_state.db_conn = conn
+                
+                # Add new columns if they don't exist (for backward compatibility)
+                try:
+                    cursor.execute("ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
+
+                try:
+                    cursor.execute("ALTER TABLE requests ADD COLUMN filter_settings TEXT")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
+
+                try:
+                    cursor.execute("ALTER TABLE requests ADD COLUMN project_name TEXT")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
+
+                conn.commit()
+                # Соединение автоматически закроется при выходе из блока with
         except Exception:
             # Создать новое подключение в случае повторной ошибки
             st.error("Используется временная база данных в памяти")
-            st.session_state.db_conn = sqlite3.connect(":memory:")
-            cursor = st.session_state.db_conn.cursor()
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS requests (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    project_path TEXT NOT NULL,
-                    template_name TEXT NOT NULL,
-                    markdown_content TEXT NOT NULL,
-                    reference_url TEXT,
-                    processed_at DATETIME NOT NULL,
-                    file_count INTEGER DEFAULT 0,
-                    filter_settings TEXT,
-                    project_name TEXT
-                )
-            """)
+            with sqlite3.connect(":memory:") as conn:
+                cursor = conn.cursor()
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS requests (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        project_path TEXT NOT NULL,
+                        template_name TEXT NOT NULL,
+                        markdown_content TEXT NOT NULL,
+                        reference_url TEXT,
+                        processed_at DATETIME NOT NULL,
+                        file_count INTEGER DEFAULT 0,
+                        filter_settings TEXT,
+                        project_name TEXT
+                    )
+                """)
+                
+                # Add new columns if they don't exist (for backward compatibility)
+                try:
+                    cursor.execute("ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
 
-    # Add new columns if they don't exist (for backward compatibility)
-    try:
-        cursor.execute("ALTER TABLE requests ADD COLUMN file_count INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass  # Column already exists
+                try:
+                    cursor.execute("ALTER TABLE requests ADD COLUMN filter_settings TEXT")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
 
-    try:
-        cursor.execute("ALTER TABLE requests ADD COLUMN filter_settings TEXT")
-    except sqlite3.OperationalError:
-        pass  # Column already exists
+                try:
+                    cursor.execute("ALTER TABLE requests ADD COLUMN project_name TEXT")
+                except sqlite3.OperationalError:
+                    pass  # Column already exists
 
-    try:
-        cursor.execute("ALTER TABLE requests ADD COLUMN project_name TEXT")
-    except sqlite3.OperationalError:
-        pass  # Column already exists
-
-    conn.commit()
-    conn.close()
+                conn.commit()
+                # Соединение автоматически закроется при выходе из блока with
 
 
 init_db()
@@ -538,7 +575,7 @@ def prepare_file_content(content, file_format, project_path):
 
 
 # Новые функции для интерактивного выбора файлов
-@st.cache_data(ttl=300, max_entries=10)
+@st.cache_data(ttl=300, max_entries=10, show_spinner=True)
 def get_file_tree_structure(
     path,
     max_depth=3,
@@ -558,6 +595,7 @@ def get_file_tree_structure(
         exclude_patterns=exclude_patterns or [],
         max_file_size=FileSize(kb=max_file_size) if max_file_size else FileSize(kb=50),
         show_excluded=show_excluded,
+        max_depth=max_depth if max_depth is not None and max_depth > 0 else None,
     )
 
     # Строим дерево с помощью ProjectTreeBuilder
@@ -608,6 +646,7 @@ def render_file_tree_ui(structure, prefix="", selected_files=None, key_prefix=""
         selected_files = set()
 
     newly_selected: set[str] = set(selected_files)  # Начинаем с текущего выбора
+    updated = False  # Флаг для отслеживания изменений
 
     for name, info in structure.items():
         current_key = f"{key_prefix}_{name}_{hash(info['path'])}"  # Используем hash для уникальности
@@ -647,6 +686,7 @@ def render_file_tree_ui(structure, prefix="", selected_files=None, key_prefix=""
 
             # Если состояние папки изменилось
             if folder_selected != all_children_selected and not is_excluded:
+                updated = True
                 if folder_selected:
                     # Выбираем все дочерние элементы (только не исключенные)
                     for child_path in child_paths:
@@ -664,8 +704,10 @@ def render_file_tree_ui(structure, prefix="", selected_files=None, key_prefix=""
                     newly_selected,
                     key_prefix + f"_{name}",
                 )
-                # Update selection with children's state
-                newly_selected.update(child_selected)
+                # Update selection with children's state only if there were changes
+                if child_selected != newly_selected:
+                    newly_selected = child_selected
+                    updated = True
 
         else:
             # File checkbox
@@ -691,12 +733,15 @@ def render_file_tree_ui(structure, prefix="", selected_files=None, key_prefix=""
             )
 
             if not is_excluded:
-                if file_selected:
+                if file_selected and info["path"] not in selected_files:
                     newly_selected.add(info["path"])
-                elif info["path"] in newly_selected:
+                    updated = True
+                elif not file_selected and info["path"] in newly_selected:
                     newly_selected.discard(info["path"])
+                    updated = True
 
-    return newly_selected
+    # Возвращаем обновленный набор только если были изменения
+    return newly_selected if updated else selected_files
 
 
 def get_all_child_paths(folder_info, include_excluded=True):
@@ -1510,6 +1555,7 @@ try:
                         # Конвертируем DirectoryNode в словарь перед сохранением
                         st.session_state.file_tree = get_file_tree_structure(
                             project_path,
+                            max_depth=filters.max_depth,
                             include_patterns=filters.include_patterns,
                             exclude_patterns=filters.exclude_patterns,
                             max_file_size=filters.max_file_size.kb,
@@ -1550,7 +1596,7 @@ try:
                     # Кнопки быстрого выбора
                     sel_col1, sel_col2, sel_col3 = st.columns(3)
                     with sel_col1:
-                        if st.button("📂 Select All", help="Select all visible files"):
+                        if st.button("📂 Select All", help="Select all visible files", key="select_all_btn"):
                             if st.session_state.get("file_tree"):
                                 all_paths = []
 
@@ -1567,14 +1613,21 @@ try:
                                                 collect_all_paths(info["children"])
 
                                 collect_all_paths(st.session_state.file_tree)
-                                st.session_state.filter_settings.selected_files = set(
-                                    all_paths
+                                # Создаем новую FilterSettings с обновленным selected_files
+                                current = st.session_state.filter_settings
+                                st.session_state.filter_settings = FilterSettings(
+                                    include_patterns=current.include_patterns,
+                                    exclude_patterns=current.exclude_patterns,
+                                    max_file_size=current.max_file_size,
+                                    show_excluded=current.show_excluded,
+                                    selected_files=set(all_paths),
+                                    max_depth=current.max_depth,
                                 )
                             else:
                                 st.warning("Please scan the project structure first")
 
                     with sel_col2:
-                        if st.button("📄 Code Files Only", help="Select only code files"):
+                        if st.button("📄 Code Files Only", help="Select only code files", key="code_only_btn"):
                             code_extensions = [
                                 ".py",
                                 ".js",
@@ -1602,15 +1655,29 @@ try:
                                             collect_code_paths(info["children"])
 
                             collect_code_paths(file_tree)
-                            st.session_state.filter_settings.selected_files = set(
-                                code_paths
+                            # Создаем новую FilterSettings с обновленным selected_files
+                            current = st.session_state.filter_settings
+                            st.session_state.filter_settings = FilterSettings(
+                                include_patterns=current.include_patterns,
+                                exclude_patterns=current.exclude_patterns,
+                                max_file_size=current.max_file_size,
+                                show_excluded=current.show_excluded,
+                                selected_files=set(code_paths),
+                                max_depth=current.max_depth,
                             )
-                            st.rerun()
 
                     with sel_col3:
-                        if st.button("🗑️ Clear Selection", help="Deselect all files"):
-                            st.session_state.filter_settings.selected_files = set()
-                            st.rerun()
+                        if st.button("🗑️ Clear Selection", help="Deselect all files", key="clear_selection_btn"):
+                            # Создаем новую FilterSettings с пустым selected_files
+                            current = st.session_state.filter_settings
+                            st.session_state.filter_settings = FilterSettings(
+                                include_patterns=current.include_patterns,
+                                exclude_patterns=current.exclude_patterns,
+                                max_file_size=current.max_file_size,
+                                show_excluded=current.show_excluded,
+                                selected_files=set(),
+                                max_depth=current.max_depth,
+                            )
 
                     # Отображаем количество выбранных файлов
                     selected_count = len(
@@ -1621,6 +1688,10 @@ try:
                         ]
                     )
                     st.info(f"📊 Selected files: {selected_count}")
+                    
+                    # Отладочная информация
+                    # st.write(f"DEBUG: selected_files length: {len(st.session_state.filter_settings.selected_files)}")
+                    # st.write(f"DEBUG: file_tree keys: {list(st.session_state.file_tree.keys()) if st.session_state.get('file_tree') else 'No file tree'}")
 
                     # Рендерим дерево файлов с чекбоксами
                     newly_selected = render_file_tree_ui(
@@ -1629,11 +1700,9 @@ try:
                         key_prefix="tree",
                     )
 
-                    # Обновляем выбранные файлы
-                    st.session_state.filter_settings.selected_files = newly_selected
-
-                    # Принудительно обновляем UI
-                    st.rerun()
+                    # Обновляем выбранные файлы только если есть изменения
+                    if newly_selected != st.session_state.filter_settings.selected_files:
+                        st.session_state.filter_settings.selected_files = newly_selected
                 else:
                     st.info("Нажмите 'Сканировать папку' для отображения структуры")
             except NameError as e:
@@ -1767,20 +1836,22 @@ except Exception as e:
     st.error(f"Неожиданная ошибка: {str(e)}")
 finally:
     # Гарантировать закрытие всех ресурсов
-    print("Очистка ресурсов...")
+    # print("Очистка ресурсов...")  # Убрано для уменьшения вывода в терминал
 
     # Закрываем соединение WebSocket если оно существует
     if hasattr(st, "_websocket") and st._websocket:
         try:
             st._websocket.close()
-            print("WebSocket соединение закрыто успешно")
+            # print("WebSocket соединение закрыто успешно")  # Убрано для уменьшения вывода в терминал
         except Exception as e:
-            print(f"Ошибка при закрытии WebSocket: {str(e)}")
+            # print(f"Ошибка при закрытии WebSocket: {str(e)}")  # Убрано для уменьшения вывода в терминал
+            pass
 
     # Закрываем соединение с базой данных если оно открыто
     if "db_conn" in st.session_state and st.session_state.db_conn:
         try:
             st.session_state.db_conn.close()
-            print("Соединение с базой данных закрыто")
+            # print("Соединение с базой данных закрыто")  # Убрано для уменьшения вывода в терминал
         except Exception as e:
-            print(f"Ошибка при закрытии базы данных: {str(e)}")
+            # print(f"Ошибка при закрытии базы данных: {str(e)}")  # Убрано для уменьшения вывода в терминал
+            pass

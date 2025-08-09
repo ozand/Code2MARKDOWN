@@ -193,7 +193,9 @@ class GenerationService:
                 self._process_files_from_tree(child, selected_files, files, filters)
             elif isinstance(child, FileNode):
                 # Skip if we have selected files and this file is not in the list
-                if selected_files is not None and child.path not in (selected_files or []):
+                if selected_files is not None and child.path not in (
+                    selected_files or []
+                ):
                     continue
 
                 # Skip binary files
@@ -268,9 +270,7 @@ class GenerationService:
                 )
 
                 # Проходим по всем файлам в дереве
-                self._process_files_from_tree(
-                    root_node, selected_files, files, filters
-                )
+                self._process_files_from_tree(root_node, selected_files, files, filters)
             else:
                 project_structure = "Error: Could not build project tree."
 
