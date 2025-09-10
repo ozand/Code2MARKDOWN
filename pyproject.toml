@@ -33,7 +33,7 @@ ignore = ["E501"]
 quote-style = "double"
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
 cache_dir = "tmp_cache"
 # Coverage configuration
@@ -75,4 +75,5 @@ dev = [
     "pip-audit>=2.9.0",
     "vulture>=2.14",
     "pydeps>=1.9.13",
+    "pytest-playwright>=0.7.1",
 ]
