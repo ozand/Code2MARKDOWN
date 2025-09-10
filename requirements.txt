@@ -1,6 +1,0 @@
-# Core dependencies for Code2MARKDOWN
-streamlit>=1.38.0
-pybars3>=0.9.7
-pathspec>=0.12.1
-pyperclip>=1.9.0
-pandas>=2.2.3

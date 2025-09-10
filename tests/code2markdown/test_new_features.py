@@ -53,7 +53,7 @@ def test_new_features():
     include_patterns = [".py", ".md", ".yml", ".yaml"]
     exclude_patterns = ["__pycache__", "*.pyc"]
 
-    for folder_name, folder_path, agent_type in ai_folders:
+    for _folder_name, folder_path, agent_type in ai_folders:
         selected_files = select_folder_files(
             folder_path,
             include_patterns=include_patterns,

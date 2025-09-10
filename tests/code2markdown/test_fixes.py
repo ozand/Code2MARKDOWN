@@ -4,6 +4,8 @@
 """
 
 # Импортируем функции из приложения
+import xml.etree.ElementTree as ET
+
 from code2markdown.app import clean_xml_content, convert_to_xml, is_binary_file
 
 
@@ -48,7 +50,7 @@ def test_xml_conversion():
     print("=== Тест конвертации в XML ===")
 
     test_markdown = """# Test Project
-    
+
 This is a test markdown with special characters: <script>alert('xss')</script>
 And some invalid XML chars: \x00\x01\x02
 
@@ -64,7 +66,7 @@ def hello():
         print("XML конвертация успешна!")
         print("Первые 500 символов:")
         print(xml_result[:500])
-    except Exception as e:
+    except (ET.ParseError, UnicodeDecodeError) as e:
         print(f"Ошибка XML конвертации: {e}")
 
     print()

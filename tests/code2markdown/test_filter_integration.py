@@ -78,7 +78,7 @@ def test_filter_integration():
 
     if tree_all:
         first_folder = None
-        for name, info in tree_all.items():
+        for _name, info in tree_all.items():
             if info["type"] == "folder":
                 first_folder = info
                 break
@@ -105,7 +105,7 @@ def test_filter_integration():
 def count_files_in_tree(tree):
     """Подсчитывает количество файлов в дереве"""
     count = 0
-    for name, info in tree.items():
+    for _name, info in tree.items():
         if info["type"] == "file":
             count += 1
         elif info["type"] == "folder" and info.get("children"):
@@ -116,7 +116,7 @@ def count_files_in_tree(tree):
 def count_excluded_files_in_tree(tree):
     """Подсчитывает количество исключенных файлов в дереве"""
     count = 0
-    for name, info in tree.items():
+    for _name, info in tree.items():
         if info["type"] == "file" and info.get("excluded", False):
             count += 1
         elif info["type"] == "folder" and info.get("children"):
@@ -129,7 +129,7 @@ def analyze_exclusions(tree):
     stats = {"Включенные файлы": 0, "Исключенные файлы": 0, "Исключенные папки": 0}
 
     def analyze_recursive(structure):
-        for name, info in structure.items():
+        for _name, info in structure.items():
             if info["type"] == "file":
                 if info.get("excluded", False):
                     stats["Исключенные файлы"] += 1

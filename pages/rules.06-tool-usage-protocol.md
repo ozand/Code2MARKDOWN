@@ -1,0 +1,1 @@
+T:/Code/python/Tools/Code2MARKDOWN/.roo/rules/06-tool-usage-protocol.md

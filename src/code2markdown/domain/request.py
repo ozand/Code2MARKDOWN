@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from .filters import FilterSettings
+from code2markdown.domain.filters import FilterSettings
 
 
 @dataclass

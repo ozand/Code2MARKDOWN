@@ -16,25 +16,18 @@ dependencies = [
 where = ["src"]
 include = ["code2markdown*"]
 namespaces = false
-[project.optional-dependencies]
-dev = [
-    "pytest>=8.3.4",
-    "pytest-cov>=6.0.0",
-    "mypy>=1.13.0",
-    "pydeps>=1.9.13",
-]
 
 [project.scripts]
 test = "pytest:main"
 test-cov = "pytest:main"
 dead-code = "vulture:main"
 audit = "pip_audit:main"
-check-cycles = "scripts.check_cycles:main"
+check-cycles = "scripts.development.analyze_architecture:main"
 
 [tool.ruff]
 line-length = 90
 [tool.ruff.lint]
-select = ["F","E","W","I","UP","B","BLE", "TID252"]
+select = ["F","E","W","I","UP","B","BLE"]
 ignore = ["E501"]
 [tool.ruff.format]
 quote-style = "double"
@@ -43,6 +36,21 @@ quote-style = "double"
 pythonpath = ["src"]
 testpaths = ["tests"]
 cache_dir = "tmp_cache"
+# Coverage configuration
+addopts = "--cov=src --cov=scripts --cov-report=xml --cov-report=term-missing --cov-report=html"
+
+# Development scripts specific test markers
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+    "development_scripts: marks tests for development scripts",
+    "utils: marks tests for utils module",
+    "parser: marks tests for parser module",
+    "validator: marks tests for validator module",
+    "log_analyzer: marks tests for log analyzer module",
+    "config_generator: marks tests for config generator module",
+]
 
 [tool.mypy]
 # Игнорировать отсутствие stub-файлов для указанных модулей
@@ -60,9 +68,11 @@ show_error_codes = true
 
 [dependency-groups]
 dev = [
+    "pytest>=8.3.4",
+    "pytest-cov>=6.2.1",
+    "mypy>=1.13.0",
     "coverage>=7.10.2",
     "pip-audit>=2.9.0",
-    "pytest-cov>=6.2.1",
     "vulture>=2.14",
     "pydeps>=1.9.13",
 ]

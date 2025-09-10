@@ -6,14 +6,20 @@ repos:
         args: [--fix]
       - id: ruff-format
   - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.11.2
+    rev: v1.17.1
     hooks:
       - id: mypy
   - repo: local
     hooks:
       - id: check-circular-imports
-        name: check circular imports
-        entry: python scripts/development/check_circular_imports.py
+        name: Check for circular imports
+        entry: python scripts/development/analyze_architecture.py
         language: python
         types: [python]
         require_serial: true
+      - id: validate-kb
+        name: Validate Knowledge Base
+        entry: python scripts/development/validate_kb.py
+        language: python
+        types: [markdown]
+        pass_filenames: false

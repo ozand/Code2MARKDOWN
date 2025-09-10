@@ -36,15 +36,15 @@ class PerformanceTester:
             max_file_size=FileSize(kb=100),
             max_depth=None,
         )
-        self.results = {}
+        self.results: dict = {}
 
     def count_files(self) -> tuple[int, int]:
         """Подсчитывает количество файлов и директорий в проекте"""
         file_count = 0
         dir_count = 0
 
-        for root, dirs, files in os.walk(self.project_path):
-            dir_count += len(dirs)
+        for _root, _dirs, files in os.walk(self.project_path):
+            dir_count += len(_dirs)
             file_count += len(files)
 
         return file_count, dir_count
@@ -109,7 +109,7 @@ class PerformanceTester:
                 if iterations % 100 == 0:
                     print(f"  Выполнено итераций: {iterations}")
 
-        except Exception as e:
+        except (OSError, ValueError, TypeError) as e:
             return {
                 "operation": "long_running_stability",
                 "status": "failed",
@@ -143,7 +143,7 @@ class PerformanceTester:
             )
             success = True
             error = None
-        except Exception as e:
+        except (ValueError, TypeError, OSError) as e:
             success = False
             error = str(e)
             markdown_content = None
@@ -169,34 +169,42 @@ class PerformanceTester:
         print(f"Общее количество директорий: {total_dirs}")
 
         # Запускаем тесты
-        results = {
+        results: dict[str, object | list[dict[str, object]]] = {
             "project_path": str(self.project_path),
             "total_files": total_files,
             "total_dirs": total_dirs,
             "test_start_time": datetime.now().isoformat(),
             "tests": [],
         }
+        tests_list: list[dict[str, object]] = results["tests"]  # type: ignore
 
         # Тест построения дерева
         tree_result = self.test_tree_building()
-        results["tests"].append(tree_result)
+        if isinstance(tests_list, list):
+            tests_list.append(tree_result)
         print(f"  Время построения дерева: {tree_result['duration']:.3f} сек")
 
         # Тест стабильности
         stability_result = self.test_long_running_stability(
             duration_hours=0.1
         )  # Уменьшаем время для тестирования
-        results["tests"].append(stability_result)
+        if isinstance(tests_list, list):
+            tests_list.append(stability_result)
         print(f"  Стабильность: {stability_result['status']}")
 
         # Тест времени отклика UI
         ui_result = self.test_ui_response_time()
-        results["tests"].append(ui_result)
+        if isinstance(tests_list, list):
+            tests_list.append(ui_result)
         print(f"  Время отклика UI: {ui_result['duration']:.3f} сек")
 
         results["test_end_time"] = datetime.now().isoformat()
         results["total_duration"] = sum(
-            test["duration"] for test in results["tests"] if "duration" in test
+            test["duration"]
+            for test in tests_list
+            if isinstance(test, dict)
+            and "duration" in test
+            and isinstance(test["duration"], int | float)
         )
 
         # Сохраняем результаты

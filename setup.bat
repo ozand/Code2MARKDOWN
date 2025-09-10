@@ -25,7 +25,7 @@ python -m pip install --upgrade pip
 
 REM Install dependencies
 echo 📚 Installing dependencies...
-pip install -r requirements.txt
+pip install -e .[dev]
 
 REM Test installation
 echo 🧪 Testing installation...

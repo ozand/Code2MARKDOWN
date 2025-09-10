@@ -72,7 +72,7 @@ class SqliteHistoryRepository(IHistoryRepository):
 
             cursor.execute(
                 """
-                INSERT INTO requests 
+                INSERT INTO requests
                 (project_path, project_name, template_name, markdown_content, reference_url, processed_at, file_count, filter_settings)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
@@ -92,7 +92,7 @@ class SqliteHistoryRepository(IHistoryRepository):
             request.id = cursor.lastrowid
 
             conn.commit()
-        except Exception as e:
+        except sqlite3.Error as e:
             conn.rollback()
             raise e
         finally:
@@ -161,7 +161,7 @@ class SqliteHistoryRepository(IHistoryRepository):
         try:
             cursor.execute("DELETE FROM requests WHERE id = ?", (request_id,))
             conn.commit()
-        except Exception as e:
+        except sqlite3.Error as e:
             conn.rollback()
             raise e
         finally:

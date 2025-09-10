@@ -1,0 +1,2 @@
+ ;; Этот блок сгенерирован автоматически скриптом generate_logseq_config.py
+ :hidden [".benchmarks" ".git" ".github" ".mypy_cache" ".pytest_cache" ".roo" ".ruff_cache" ".specstory" ".temp_scripts" ".uv" ".venv" "__pycache__" "code2markdown.egg-info" "doc" "htmlcov" "node_modules" "scripts" "src" "templates" "test_project" "test_results" "tests" "tmp_cache"]

@@ -1,5 +1,6 @@
 import html
 import os
+import sqlite3
 from datetime import datetime
 
 from pybars import Compiler
@@ -211,7 +212,15 @@ class GenerationService:
                 except UnicodeDecodeError:
                     # Skip files with encoding issues
                     pass
-                except Exception as e:
+                except PermissionError as e:
+                    # Log warning but continue processing other files
+                    print(
+                        f"Permission denied for file {os.path.basename(child.path)}: {str(e)}"
+                    )
+                except FileNotFoundError as e:
+                    # Log warning but continue processing other files
+                    print(f"File not found {os.path.basename(child.path)}: {str(e)}")
+                except OSError as e:
                     # Log warning but continue processing other files
                     print(f"Skipping file {os.path.basename(child.path)}: {str(e)}")
 
@@ -322,7 +331,7 @@ class GenerationService:
         # Save to repository
         try:
             self._history_repo.save(request)
-        except Exception as e:
-            raise Exception(f"Error saving request to database: {str(e)}")
+        except sqlite3.Error as e:
+            raise Exception(f"Database error saving request: {str(e)}") from e
 
         return markdown_content

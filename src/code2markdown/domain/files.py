@@ -1,5 +1,4 @@
 import fnmatch
-import functools
 import hashlib
 import json
 import os
@@ -8,7 +7,7 @@ from typing import Union
 
 import pathspec
 
-from .filters import FilterSettings
+from code2markdown.domain.filters import FilterSettings
 
 
 @dataclass
@@ -161,6 +160,9 @@ class ProjectTreeBuilder:
     def __init__(self):
         self._cache: dict[str, DirectoryNode | None] = {}
         self._cache_stats = {"hits": 0, "misses": 0}
+        # Initialize caches for methods that previously used lru_cache
+        self._file_stat_cache: dict[str, tuple[bool, int]] = {}
+        self._is_binary_file_cache: dict[str, bool] = {}
 
     def _get_cache_key(
         self, root_path: str, filters: FilterSettings, current_depth: int = 0
@@ -179,16 +181,25 @@ class ProjectTreeBuilder:
         )
         return hashlib.md5(cache_data.encode()).hexdigest()
 
-    @functools.lru_cache(maxsize=128)
     def _get_file_stat(self, path: str) -> tuple[bool, int]:
         """
         Кэширует результаты проверки существования файла и получения его размера.
         """
+        # Check if result is already cached
+        if path in self._file_stat_cache:
+            return self._file_stat_cache[path]
+
         try:
             stat = os.stat(path)
-            return True, stat.st_size
+            result = True, stat.st_size
         except OSError:
-            return False, 0
+            result = False, 0
+
+        # Cache the result
+        if len(self._file_stat_cache) < 128:  # Respect the original maxsize
+            self._file_stat_cache[path] = result
+
+        return result
 
     def build_tree(
         self, root_path: str, filters: FilterSettings, current_depth: int = 0
@@ -302,7 +313,6 @@ class ProjectTreeBuilder:
 
         return dir_node
 
-    @functools.lru_cache(maxsize=1024)
     def _is_binary_file(self, file_path: str) -> bool:
         """
         Проверяет, является ли файл бинарным.
@@ -313,6 +323,9 @@ class ProjectTreeBuilder:
         Returns:
             True если файл бинарный, False в противном случае
         """
+        # Check if result is already cached
+        if file_path in self._is_binary_file_cache:
+            return self._is_binary_file_cache[file_path]
         # Известные бинарные расширения
         binary_extensions = {
             ".pyc",

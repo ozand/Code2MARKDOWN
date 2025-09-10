@@ -1,0 +1,1 @@
+T:/Code/python/Tools/Code2MARKDOWN/.roo/rules/03-e2e_tests_guidline.md

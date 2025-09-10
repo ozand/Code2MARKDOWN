@@ -41,7 +41,12 @@ python -m venv .venv
 .venv\Scripts\activate  # Windows
 # source .venv/bin/activate  # Linux/Mac
 
-# Install dependencies
+# Install dependencies using pyproject.toml
+pip install -e .
+# For development dependencies:
+pip install -e .[dev]
+
+# Alternatively, install dependencies from requirements.txt
 pip install -r requirements.txt
 
 # Run the application
@@ -158,6 +163,49 @@ The XML export includes metadata and structured content:
 </project>
 ```
 
+## 🧪 Testing
+
+### Running Tests
+
+To run the test suite:
+
+```bash
+# Run all tests
+python -m pytest tests/
+
+# Run tests with coverage report
+pytest --cov=src --cov-report=xml
+
+# Run tests with HTML coverage report (for local viewing)
+pytest --cov=src --cov-report=html
+```
+
+The coverage reports will be generated in the project root directory:
+- `coverage.xml` - XML format for CI/CD integration
+- `htmlcov/` - HTML format for local viewing (open `htmlcov/index.html` in your browser)
+
+See [MAINTENANCE.md](MAINTENANCE.md) for information about dead code removal and dependency auditing.
+
+### Quick Setup Guide
+
+1. **Clone and setup**:
+   ```bash
+   git clone <repository-url>
+   cd Code2MARKDOWN
+   setup.bat  # This handles everything automatically
+   ```
+
+2. **Launch application**:
+   ```bash
+   start.bat  # Launches with dependency checking
+   ```
+
+3. **Manual launch** (if needed):
+   ```bash
+   .venv\Scripts\activate.bat
+   streamlit run app.py
+   ```
+
 ## 🔧 Troubleshooting
 
 ### Common Issues
@@ -208,26 +256,6 @@ pip install streamlit pybars3 pathspec pyperclip pandas
 # Clear pip cache if needed
 pip cache purge
 ```
-
-### Quick Setup Guide
-
-1. **Clone and setup**:
-   ```bash
-   git clone <repository-url>
-   cd Code2MARKDOWN
-   setup.bat  # This handles everything automatically
-   ```
-
-2. **Launch application**:
-   ```bash
-   start.bat  # Launches with dependency checking
-   ```
-
-3. **Manual launch** (if needed):
-   ```bash
-   .venv\Scripts\activate.bat
-   streamlit run app.py
-   ```
 
 ## 📝 License
 

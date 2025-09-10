@@ -8,6 +8,7 @@ import os
 import xml.etree.ElementTree as ET
 from datetime import datetime
 from xml.dom import minidom
+from xml.parsers.expat import ExpatError
 
 
 def is_binary_file(file_path):
@@ -114,7 +115,7 @@ def convert_to_xml(markdown_content, project_name):
         rough_string = ET.tostring(root, "utf-8")
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
-    except Exception:
+    except ExpatError:
         # Если не удается создать валидный XML, возвращаем простую структуру
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <project>
@@ -168,7 +169,7 @@ def test_xml_conversion():
     print("=== Тест конвертации в XML ===")
 
     test_markdown = """# Test Project
-    
+
 This is a test markdown with special characters: <script>alert('xss')</script>
 And some invalid XML chars: \x00\x01\x02
 
@@ -184,7 +185,7 @@ def hello():
         print("XML конвертация успешна!")
         print("Первые 500 символов:")
         print(xml_result[:500])
-    except Exception as e:
+    except (ExpatError, UnicodeDecodeError) as e:
         print(f"Ошибка XML конвертации: {e}")
 
     print()

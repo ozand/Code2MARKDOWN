@@ -5,6 +5,7 @@ import math
 import os
 import sqlite3
 import xml.etree.ElementTree as ET
+import zipfile
 from datetime import datetime
 from xml.dom import minidom
 
@@ -107,7 +108,7 @@ def init_db():
 
                 conn.commit()
                 # Соединение автоматически закроется при выходе из блока with
-        except Exception:
+        except (sqlite3.Error, OSError):
             # Создать новое подключение в случае повторной ошибки
             st.error("Используется временная база данных в памяти")
             with sqlite3.connect(":memory:") as conn:
@@ -525,7 +526,7 @@ def convert_to_xml(markdown_content, project_name):
         rough_string = ET.tostring(root, "utf-8")
         reparsed = minidom.parseString(rough_string)
         return reparsed.toprettyxml(indent="  ")
-    except Exception:
+    except (ET.ParseError, UnicodeDecodeError):
         # Если не удается создать валидный XML, возвращаем простую структуру
         return f"""<?xml version="1.0" encoding="UTF-8"?>
 <project>
@@ -755,7 +756,7 @@ def get_all_child_paths(folder_info, include_excluded=True):
     paths = []
 
     def collect_paths(structure):
-        for name, info in structure.items():
+        for _name, info in structure.items():
             # Если exclude_excluded=False, пропускаем исключенные элементы
             if not include_excluded and info.get("excluded", False):
                 continue
@@ -813,7 +814,7 @@ def get_filtered_files_interactive(
                 filtered_files.append(file_path)
         elif os.path.isdir(file_path):
             # Если выбрана папка, получаем все файлы из неё
-            for root, dirs, files in os.walk(file_path):
+            for root, _dirs, files in os.walk(file_path):
                 for file in files:
                     full_path = os.path.join(root, file)
                     filtered_files.append(full_path)
@@ -908,7 +909,7 @@ def display_history_with_pagination(history, page_size=10):
         )
 
     # Отображение данных
-    for i, data in enumerate(display_data):
+    for _i, data in enumerate(display_data):
         with st.expander(
             f"🗂️ {data['Project']} - {data['Template']} ({data['Date']})", expanded=False
         ):
@@ -1026,7 +1027,7 @@ def read_gitignore_patterns(project_path):
                     # Пропускаем пустые строки и комментарии
                     if line and not line.startswith("#"):
                         patterns.append(line)
-        except Exception as e:
+        except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
             st.warning(f"Could not read .gitignore: {str(e)}")
 
     return patterns
@@ -1066,7 +1067,7 @@ def select_folder_files(
     if not os.path.exists(folder_path):
         return selected_files
 
-    for root, dirs, files in os.walk(folder_path):
+    for root, _dirs, files in os.walk(folder_path):
         for file in files:
             file_path = os.path.join(root, file)
 
@@ -1139,7 +1140,9 @@ def select_folder_files(
 #
 # Streamlit UI
 st.sidebar.title("Навигация")
-page = st.sidebar.radio("Выберите страницу", ["Генерация Markdown", "История запросов"])
+page = st.sidebar.radio(
+    "Выберите страницу", ["Генерация Markdown", "История запросов", "Парсер спецификаций"]
+)
 
 # Initialize session state for rerun
 if "rerun" not in st.session_state:
@@ -1232,7 +1235,7 @@ try:
                 max_file_size=FileSize(kb=50),
                 show_excluded=False,
             )
-        except Exception as e:
+        except (ValueError, TypeError) as e:
             st.error(
                 f"Ошибка инициализации фильтров: {str(e)}. Используются настройки по умолчанию."
             )
@@ -1572,7 +1575,7 @@ try:
                     def count_items(structure):
                         folders = 0
                         files = 0
-                        for name, info in structure.items():
+                        for _name, info in structure.items():
                             if info["type"] == "folder":
                                 folders += 1
                                 if info.get("children"):
@@ -1611,7 +1614,7 @@ try:
                                 all_paths = []
 
                                 def collect_all_paths(structure):
-                                    for name, info in structure.items():
+                                    for _name, info in structure.items():
                                         # Пропускаем исключенные элементы
                                         if not info.get("excluded", False):
                                             if info["type"] == "file":
@@ -1725,7 +1728,11 @@ try:
                     st.info("Нажмите 'Сканировать папку' для отображения структуры")
             except NameError as e:
                 st.error(f"ProjectTreeBuilder is not available: {str(e)}")
-            except Exception as e:
+            except FileNotFoundError as e:
+                st.error(f"Project path not found: {str(e)}")
+            except PermissionError as e:
+                st.error(f"Permission denied accessing project path: {str(e)}")
+            except OSError as e:
                 st.error(f"Error loading project structure: {str(e)}")
     else:
         st.info("Enter a valid project path to see the file structure.")
@@ -1850,7 +1857,9 @@ except tornado.websocket.WebSocketClosedError:
     st.warning("WebSocket соединение закрыто. Пожалуйста, перезагрузите страницу.")
 except TimeoutError:
     st.warning("Операция превысила время ожидания. Пожалуйста, попробуйте снова.")
-except Exception as e:
+except ConnectionError as e:
+    st.error(f"Connection error: {str(e)}")
+except OSError as e:
     st.error(f"Неожиданная ошибка: {str(e)}")
 finally:
     # Гарантировать закрытие всех ресурсов
@@ -1861,7 +1870,7 @@ finally:
         try:
             st._websocket.close()
             # print("WebSocket соединение закрыто успешно")  # Убрано для уменьшения вывода в терминал
-        except Exception:
+        except (ConnectionError, BrokenPipeError):
             # print(f"Ошибка при закрытии WebSocket: {str(e)}")  # Убрано для уменьшения вывода в терминал
             pass
 
@@ -1870,6 +1879,125 @@ finally:
         try:
             st.session_state.db_conn.close()
             # print("Соединение с базой данных закрыто")  # Убрано для уменьшения вывода в терминал
-        except Exception:
+        except (sqlite3.Error, AttributeError):
             # print(f"Ошибка при закрытии базы данных: {str(e)}")  # Убрано для уменьшения вывода в терминал
             pass
+
+if page == "Парсер спецификаций":
+    st.title("챗 Парсер спецификаций")
+
+    # Initialize session state for chat parser
+if "chat_parser_results" not in st.session_state:
+    st.session_state.chat_parser_results = None
+if "chat_parser_log" not in st.session_state:
+    st.session_state.chat_parser_log = []
+if "chat_parser_zip_path" not in st.session_state:
+    st.session_state.chat_parser_zip_path = None
+
+st.subheader("Загрузка файла чата")
+uploaded_file = st.file_uploader("Выберите файл чата для парсинга", type=["md", "txt"])
+
+if uploaded_file is not None:
+    st.success(f"Файл {uploaded_file.name} успешно загружен!")
+
+    # Display file info
+    st.info(f"Размер файла: {uploaded_file.size} байт")
+
+    # Show parse button
+    if st.button("Запустить парсинг"):
+        try:
+            # Read file content
+            content = uploaded_file.getvalue().decode("utf-8")
+
+            # Import and use chat parser
+            from code2markdown.domain.chat_parser import parse_chat_content
+
+            # Parse the content
+            documents, log = parse_chat_content(content)
+
+            # Store results in session state
+            st.session_state.chat_parser_results = documents
+            st.session_state.chat_parser_log = log
+            st.session_state.chat_parser_zip_path = None  # Reset zip path
+
+            # Show success message
+            st.success(f"Парсинг завершен! Извлечено {len(documents)} документов.")
+
+        except ValueError as e:
+            st.error(f"Ошибка при парсинге файла: {str(e)}")
+            st.session_state.chat_parser_results = None
+            st.session_state.chat_parser_log = [f"Ошибка: {str(e)}"]
+        except FileNotFoundError as e:
+            st.error(f"Файл не найден: {str(e)}")
+            st.session_state.chat_parser_results = None
+            st.session_state.chat_parser_log = [f"Ошибка: {str(e)}"]
+        except UnicodeDecodeError as e:
+            st.error(f"Неожиданная ошибка при парсинге файла: {str(e)}")
+            st.session_state.chat_parser_results = None
+            st.session_state.chat_parser_log = [f"Ошибка: {str(e)}"]
+
+# Display processing log
+if st.session_state.chat_parser_log:
+    st.subheader("Лог обработки")
+    log_text = "\n".join(st.session_state.chat_parser_log)
+    st.text_area("Лог выполнения", value=log_text, height=200, key="log_area")
+
+# Display results and download button
+if st.session_state.chat_parser_results:
+    st.subheader("Извлеченные документы")
+
+    # Show document list
+    documents = st.session_state.chat_parser_results
+    for _i, doc in enumerate(documents):
+        with st.expander(f"{doc.title} ({doc.filename})"):
+            st.markdown(doc.content)
+
+    # Create download button
+    if st.button("Скачать все"):
+        try:
+            # Import chat parser
+            import os
+
+            # Create zip archive
+            import tempfile
+
+            from code2markdown.domain.chat_parser import ChatParser
+
+            with tempfile.NamedTemporaryFile(suffix=".zip", delete=False) as tmp_file:
+                zip_path = tmp_file.name
+
+            parser = ChatParser()
+            parser.create_zip_archive(documents, zip_path)
+
+            # Store zip path in session state
+            st.session_state.chat_parser_zip_path = zip_path
+
+            # Show download button
+            with open(zip_path, "rb") as f:
+                st.download_button(
+                    label="📥 Скачать ZIP архив",
+                    data=f,
+                    file_name="specifications.zip",
+                    mime="application/zip",
+                )
+
+            st.success("Архив создан! Нажмите кнопку выше для скачивания.")
+
+        except zipfile.BadZipFile as e:
+            st.error(f"Ошибка при создании архива (поврежденный ZIP): {str(e)}")
+        except OSError as e:
+            st.error(f"Ошибка файловой системы при создании архива: {str(e)}")
+        except RuntimeError as e:
+            st.error(f"Неожиданная ошибка при создании архива: {str(e)}")
+
+    # Show download button if zip was already created
+    elif st.session_state.chat_parser_zip_path and os.path.exists(
+        st.session_state.chat_parser_zip_path
+    ):
+        with open(st.session_state.chat_parser_zip_path, "rb") as f:
+            st.download_button(
+                label="📥 Скачать ZIP архив",
+                data=f,
+                file_name="specifications.zip",
+                mime="application/zip",
+            )
